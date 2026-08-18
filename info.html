@@ -67,14 +67,6 @@
   .swatches { display: flex; gap: 6px; align-items: center; margin: 10px 0 4px; flex-wrap: wrap; }
   .sw { width: 34px; height: 14px; border-radius: 3px; }
   .swl { font-size: 11px; color: var(--muted); margin-right: 10px; }
-  code {
-    background: #171b24;
-    border: 1px solid #2a3040;
-    border-radius: 4px;
-    padding: 1px 6px;
-    font-size: 12.5px;
-    color: var(--amber);
-  }
 </style>
 </head>
 <body>
@@ -83,53 +75,36 @@
     <h1>⚡ DOWNSTRIKE</h1>
     <a class="back" href="index.html">← Back to the map</a>
   </div>
-  <p class="tagline"><em>Downstrike</em> — the meteorologist's term for a cloud-to-ground
-  lightning bolt. A real-time, hyper-local storm watcher centered on your home. No accounts,
-  no API keys, no server: everything runs in your browser, fed by free public data.</p>
+  <p class="tagline"><em>Downstrike</em> — the weather word for a lightning bolt that hits the
+  ground. A live lightning map centered on your home. No accounts, no sign-ups: everything runs
+  in your browser, using free public data.</p>
 
-  <h2><span class="em">01</span> · The lightning feed</h2>
+  <h2><span class="em">01</span> · How the lightning is tracked</h2>
   <p>Strikes come from <a href="https://www.blitzortung.org/en/live_lightning_maps.php" target="_blank" rel="noopener">Blitzortung.org</a>,
-  a community network of thousands of volunteer-operated radio receivers around the world.
-  Nobody points a camera at the sky — the network <em>hears</em> every bolt, and locates it
-  with a stopwatch. Here's how a strike gets found:</p>
+  a worldwide network of radio receivers run by volunteers. Nobody points a camera at the sky —
+  the network <em>hears</em> every bolt and finds it with a stopwatch:</p>
   <ul>
-    <li><strong>The flash is a radio transmitter.</strong> A lightning discharge rams tens of
-    thousands of amps down a channel of air, and that current pulse acts like a giant antenna:
-    it emits a burst of very-low-frequency radio energy called a <em>sferic</em>. VLF waves
-    travel enormous distances — they hug the curve of the Earth, bouncing between the ground
-    and the ionosphere, at essentially the speed of light. (It's the same crackle you hear on
-    AM radio during a storm.)</li>
-    <li><strong>The listeners are hobbyists.</strong> Each station is a small kit a volunteer
-    runs at home — a loop antenna, an amplifier, and crucially a GPS receiver. The GPS isn't
-    there for the map position; it's there for the <em>clock</em>: it lets the station stamp
-    the exact arrival time of each sferic to about a microsecond.</li>
-    <li><strong>The race decides the location.</strong> The same burst reaches different
-    stations at slightly different moments — radio covers about 300 metres per microsecond, so
-    a station 300 km farther from the bolt hears it a full millisecond later. Each pair of
-    stations' time difference draws a curve of possible origins on the map; with four or more
-    stations the curves cross at a single point. That's the strike. It's the GPS principle run
-    in reverse: instead of one receiver timing several satellites to find itself, many
-    receivers time one flash to find <em>it</em>.</li>
-    <li><strong>More ears, better fix.</strong> A typical strike in this feed is heard by
-    20–40 stations at once, which pins it down to a kilometre or so — and the computed
-    location streams out to apps like this one within seconds of the flash.</li>
+    <li><strong>A lightning bolt is a radio transmitter.</strong> Its huge burst of electric
+    current sends out a radio pulse that travels thousands of kilometres at the speed of light.
+    (It's the crackle you hear on AM radio during a storm.)</li>
+    <li><strong>Volunteers listen at home.</strong> Each station is a small antenna kit with a
+    GPS clock accurate to a millionth of a second, which records the exact moment the pulse
+    arrives.</li>
+    <li><strong>Timing finds the bolt.</strong> Radio travels about 300 metres every
+    microsecond, so stations farther away hear the pulse a little later. Compare arrival times
+    at four or more stations and the possible locations cross at one point: the strike. It's
+    GPS in reverse — many receivers timing one flash to find it.</li>
+    <li><strong>Usually 20–40 stations hear each strike</strong>, pinning it to about a
+    kilometre. It reaches your screen 5–15 seconds after the real flash.</li>
   </ul>
-  <div class="card"><p>Downstrike holds a WebSocket connection to the Blitzortung feed and receives
-  <strong>every located strike on Earth</strong>, typically 30–100 per second during active
-  weather, each as an LZW-compressed JSON message. Latency from the actual flash is usually
-  <strong>5–15 seconds</strong>. If the connection drops, the app rotates through the feed's
-  mirror servers automatically — the status dot under the logo shows the live state.</p>
-  <p>Accuracy caveat: it's a volunteer network. Detection in populated regions is very good,
-  but an occasional strike is missed or placed a kilometre or two off. The data is free for
-  personal, non-commercial use.</p></div>
+  <div class="card"><p>Downstrike keeps a live connection to this feed and receives every
+  located strike on Earth — often 50+ per second. Because it's a volunteer network, a strike
+  is occasionally missed or placed a kilometre or two off. The data is free for personal use.</p></div>
 
-  <h2><span class="em">02</span> · The map & visual mechanics</h2>
-  <p>The basemap is <a href="https://carto.com" target="_blank" rel="noopener">CARTO</a>'s
-  dark-matter style over <a href="https://www.openstreetmap.org" target="_blank" rel="noopener">OpenStreetMap</a>
-  data, rendered by MapLibre GL. Everything else is drawn on canvas layers on top:</p>
+  <h2><span class="em">02</span> · What's on the map</h2>
   <ul>
-    <li><strong>Strike dots.</strong> A new strike lands with a bright white flash, then cools
-    as it ages — the color <em>is</em> the clock:
+    <li><strong>Strike dots.</strong> A new strike lands with a white flash, then cools like an
+    ember — the color tells you its age:
     <div class="swatches">
       <div class="sw" style="background:#ffffff"></div><span class="swl">now</span>
       <div class="sw" style="background:#ffe082"></div><span class="swl">2 min</span>
@@ -137,73 +112,53 @@
       <div class="sw" style="background:#e53935"></div><span class="swl">16 min</span>
       <div class="sw" style="background:#6e1414"></div><span class="swl">30 min, then gone</span>
     </div>
-    A storm therefore paints its own track: fresh white at the leading edge, embers trailing behind.</li>
-    <li><strong>Thunder rings.</strong> Each strike near the view emits a ring expanding at
-    <strong>343 m/s — the real speed of sound</strong>. When a ring crosses your house, that's
-    the moment you hear the rumble. Rings fade out at 50 km, past which thunder is rarely audible.</li>
-    <li><strong>Home rings.</strong> Dashed circles at 10, 25 and 50 km around your home make
-    distance readable at a glance.</li>
-    <li><strong>Approach glow.</strong> The amber arc on the 50 km ring points toward recent
-    activity. It's computed from the last 10 minutes of strikes within 120 km, each weighted by
-    <code>1 / (5 + distance)</code> — close strikes dominate. The arc narrows as the activity
-    concentrates in one direction and brightens as it gets closer.</li>
-    <li><strong>Wind flow (WIND).</strong> Hundreds of particles drift across the map along the
-    real wind field: a 5×5 grid of current wind from Open-Meteo (~±130 km around home),
-    bilinearly interpolated, refreshed every 30 minutes. Trails fade like long-exposure
-    photography. It's deliberately subtle — lightning is the star.</li>
-    <li><strong>Rain radar (RADAR).</strong> The latest
-    <a href="https://www.rainviewer.com" target="_blank" rel="noopener">RainViewer</a> composite
-    radar frame, refreshed every 5 minutes, off by default. RainViewer's free tiles stop at
-    zoom level 7, so the radar goes soft when you zoom way in.</li>
+    So a storm paints its own trail: white at the front, embers behind.</li>
+    <li><strong>Thunder rings.</strong> Each strike sends out a ring growing at 343 m/s — the
+    real speed of sound. When a ring crosses your house, that's the exact moment you'd hear the
+    rumble.</li>
+    <li><strong>Home rings.</strong> Dashed circles at 10, 25 and 50 km show distance at a
+    glance. The amber glow on the outer ring points toward recent strikes and brightens as a
+    storm gets closer.</li>
+    <li><strong>WIND.</strong> Hundreds of particles drift with the real wind (live data,
+    refreshed every 30 minutes).</li>
+    <li><strong>RADAR.</strong> Live rain radar, refreshed every 5 minutes, off by default.
+    (The free tiles get blurry if you zoom way in.)</li>
   </ul>
 
   <h2><span class="em">03</span> · The thunder sound</h2>
-  <p>Alert sounds are synthesized live with WebAudio — no recordings — and are shaped by the
-  <strong>actual distance of the strike</strong>, mimicking how air filters sound over
-  kilometres:</p>
+  <p>The thunder is generated live by code — no recordings — and shaped by the strike's real
+  distance, the same way air shapes real thunder:</p>
   <table>
     <tr><th>Layer</th><th>What it is</th><th>When you hear it</th></tr>
-    <tr><td><strong>Boom</strong></td><td>Blunt low-mid impact with a ragged echo 90 ms later</td>
-    <td>Only within ~12 km, harder and brighter the closer the strike</td></tr>
-    <tr><td><strong>Sub-bass thump</strong></td><td>A 50→30 Hz sine drop — the chest-punch</td>
+    <tr><td><strong>Boom</strong></td><td>A deep, blunt impact with an echo</td>
+    <td>Only within ~12 km — harder the closer the strike</td></tr>
+    <tr><td><strong>Sub-bass thump</strong></td><td>A low 50 Hz punch you feel</td>
     <td>Within ~25 km</td></tr>
-    <tr><td><strong>Rumble</strong></td><td>Brown noise rolling through 3–6 random peaks</td>
-    <td>Always — and it's all that's left of a distant strike</td></tr>
+    <tr><td><strong>Rumble</strong></td><td>A rolling growl with random peaks</td>
+    <td>Always — it's all that's left of a far-away strike</td></tr>
   </table>
-  <p>Distance changes everything at once: loudness falls roughly tenfold from overhead to
-  50 km; a low-pass filter sweeps from ~465 Hz down to ~85 Hz (far thunder is pure bass);
-  duration stretches from ~2 s to ~6 s; and far thunder swells in slowly instead of starting
-  with a bang. Toggling <strong>SOUND</strong> on plays a preview clap at a simulated 6 km —
-  browsers require one click on the page before any audio is allowed.</p>
+  <p>The farther the strike, the quieter it gets (about 10× softer by 50 km), the deeper it
+  sounds (air soaks up the high notes first), and the longer and slower it rolls. Flip
+  <strong>SOUND</strong> on to hear a preview — browsers need one click on the page before
+  they'll play audio.</p>
 
-  <h2><span class="em">04</span> · Features</h2>
+  <h2><span class="em">04</span> · The controls</h2>
   <ul>
-    <li><strong>Alert slider.</strong> Sets the alarm radius (5–50 km). Any strike inside it
-    triggers the red banner (distance + compass bearing) and a thunder clap at the strike's real
-    distance, throttled to one clap per 8 seconds.</li>
-    <li><strong>Closest strike.</strong> Distance and bearing of the nearest strike over the
-    last 60 minutes.</li>
-    <li><strong>Strikes / min.</strong> Live intensity meter counting strikes within 100 km —
-    watch it climb as a cell peaks.</li>
-    <li><strong>Wind at home.</strong> Current speed, gusts and direction from Open-Meteo,
-    refreshed every 10 minutes.</li>
-    <li><strong>⚡ STORM.</strong> No storm nearby? This scans the last 10 minutes of the global
-    feed, grids it into 1° cells, and flies you to the most active storm on the planet — at the
-    same zoom as the home view, so strikes, thunder rings, radar and wind all work exactly as
-    they do at home. Press it again to hop to the next-busiest storm; it always skips the one
-    already on screen. While you're away from home, you hear what you'd hear standing at the
-    <em>map center</em> — marked by a faint pulsing crosshair inside a dashed "thunder
-    audible · 50 km" ring. Any strike within that ring plays thunder at its real distance
-    (booms up close, faint rumbles from far cells), and a thunder ring sweeping across the
-    crosshair marks the moment its sound arrives. Home alerts still fire in the background.</li>
-    <li><strong>⌂.</strong> When you've flown away, one press returns you home. When you're
-    already home, it opens the address settings.</li>
+    <li><strong>ALERT slider.</strong> Pick a distance (5–50 km). Any strike inside it fires the
+    red banner and a thunder clap at that strike's real distance.</li>
+    <li><strong>Readouts.</strong> Closest strike of the last hour (with direction), strikes per
+    minute within 100 km, and live wind at home.</li>
+    <li><strong>⚡ STORM.</strong> Flies you to the most active storm on Earth right now — press
+    again to hop to the next one. Away from home, you hear what you'd hear standing at the
+    crosshair in the middle of the screen: any strike inside its dashed 50 km ring plays at its
+    real distance.</li>
+    <li><strong>⌂.</strong> Brings you back home. Press it while at home to change your
+    address.</li>
   </ul>
 
   <h2><span class="em">05</span> · Privacy & sources</h2>
-  <p>Your address is geocoded <strong>once</strong> via OpenStreetMap Nominatim when you set it,
-  then stored only in this browser's localStorage. Nothing about you is sent anywhere else — no
-  accounts, no analytics, no backend.</p>
+  <p>Your address is looked up once and saved only in your browser. No accounts, no tracking,
+  no server.</p>
   <table>
     <tr><th>What</th><th>Source</th><th>Cost</th></tr>
     <tr><td>Lightning strikes</td><td>Blitzortung.org community network</td><td>Free (personal use)</td></tr>

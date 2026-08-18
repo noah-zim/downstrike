@@ -88,11 +88,32 @@
   no API keys, no server: everything runs in your browser, fed by free public data.</p>
 
   <h2><span class="em">01</span> · The lightning feed</h2>
-  <p>Strikes come from <a href="https://www.blitzortung.org" target="_blank" rel="noopener">Blitzortung.org</a>,
-  a community network of thousands of volunteer-operated VLF radio receivers around the world.
-  A lightning discharge emits a radio pulse (a "sferic"); when several stations hear the same
-  pulse, the tiny differences in arrival time pinpoint the strike — the same time-of-arrival
-  principle GPS uses in reverse.</p>
+  <p>Strikes come from <a href="https://www.blitzortung.org/en/live_lightning_maps.php" target="_blank" rel="noopener">Blitzortung.org</a>,
+  a community network of thousands of volunteer-operated radio receivers around the world.
+  Nobody points a camera at the sky — the network <em>hears</em> every bolt, and locates it
+  with a stopwatch. Here's how a strike gets found:</p>
+  <ul>
+    <li><strong>The flash is a radio transmitter.</strong> A lightning discharge rams tens of
+    thousands of amps down a channel of air, and that current pulse acts like a giant antenna:
+    it emits a burst of very-low-frequency radio energy called a <em>sferic</em>. VLF waves
+    travel enormous distances — they hug the curve of the Earth, bouncing between the ground
+    and the ionosphere, at essentially the speed of light. (It's the same crackle you hear on
+    AM radio during a storm.)</li>
+    <li><strong>The listeners are hobbyists.</strong> Each station is a small kit a volunteer
+    runs at home — a loop antenna, an amplifier, and crucially a GPS receiver. The GPS isn't
+    there for the map position; it's there for the <em>clock</em>: it lets the station stamp
+    the exact arrival time of each sferic to about a microsecond.</li>
+    <li><strong>The race decides the location.</strong> The same burst reaches different
+    stations at slightly different moments — radio covers about 300 metres per microsecond, so
+    a station 300 km farther from the bolt hears it a full millisecond later. Each pair of
+    stations' time difference draws a curve of possible origins on the map; with four or more
+    stations the curves cross at a single point. That's the strike. It's the GPS principle run
+    in reverse: instead of one receiver timing several satellites to find itself, many
+    receivers time one flash to find <em>it</em>.</li>
+    <li><strong>More ears, better fix.</strong> A typical strike in this feed is heard by
+    20–40 stations at once, which pins it down to a kilometre or so — and the computed
+    location streams out to apps like this one within seconds of the flash.</li>
+  </ul>
   <div class="card"><p>Downstrike holds a WebSocket connection to the Blitzortung feed and receives
   <strong>every located strike on Earth</strong>, typically 30–100 per second during active
   weather, each as an LZW-compressed JSON message. Latency from the actual flash is usually

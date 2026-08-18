@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Downstrike · How it works</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="stylesheet" href="styles.css">
+<style>
+  html, body { overflow: auto; }
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 40px 22px 80px;
+  }
+  .page-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .page h1 { color: var(--amber); letter-spacing: 3px; font-size: 26px; margin: 0; }
+  .back {
+    color: var(--amber);
+    text-decoration: none;
+    font-size: 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    background: var(--panel);
+  }
+  .back:hover { border-color: var(--amber); }
+  .tagline { color: var(--muted); margin: 6px 0 30px; font-size: 15px; }
+  .page h2 {
+    color: var(--text);
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 38px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .page h2 .em { color: var(--amber); }
+  .page p, .page li { color: #c3c9d4; font-size: 14.5px; line-height: 1.65; }
+  .page li { margin-bottom: 8px; }
+  .page strong { color: var(--text); }
+  .page a { color: var(--amber); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 4px 18px;
+    margin: 14px 0;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: #c3c9d4;
+    vertical-align: top;
+  }
+  th { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
+  .swatches { display: flex; gap: 6px; align-items: center; margin: 10px 0 4px; flex-wrap: wrap; }
+  .sw { width: 34px; height: 14px; border-radius: 3px; }
+  .swl { font-size: 11px; color: var(--muted); margin-right: 10px; }
+  code {
+    background: #171b24;
+    border: 1px solid #2a3040;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12.5px;
+    color: var(--amber);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>⚡ DOWNSTRIKE</h1>
+    <a class="back" href="index.html">← Back to the map</a>
+  </div>
+  <p class="tagline"><em>Downstrike</em> — the meteorologist's term for a cloud-to-ground
+  lightning bolt. A real-time, hyper-local storm watcher centered on your home. No accounts,
+  no API keys, no server: everything runs in your browser, fed by free public data.</p>
+
+  <h2><span class="em">01</span> · The lightning feed</h2>
+  <p>Strikes come from <a href="https://www.blitzortung.org" target="_blank" rel="noopener">Blitzortung.org</a>,
+  a community network of thousands of volunteer-operated VLF radio receivers around the world.
+  A lightning discharge emits a radio pulse (a "sferic"); when several stations hear the same
+  pulse, the tiny differences in arrival time pinpoint the strike — the same time-of-arrival
+  principle GPS uses in reverse.</p>
+  <div class="card"><p>Downstrike holds a WebSocket connection to the Blitzortung feed and receives
+  <strong>every located strike on Earth</strong>, typically 30–100 per second during active
+  weather, each as an LZW-compressed JSON message. Latency from the actual flash is usually
+  <strong>5–15 seconds</strong>. If the connection drops, the app rotates through the feed's
+  mirror servers automatically — the status dot under the logo shows the live state.</p>
+  <p>Accuracy caveat: it's a volunteer network. Detection in populated regions is very good,
+  but an occasional strike is missed or placed a kilometre or two off. The data is free for
+  personal, non-commercial use.</p></div>
+
+  <h2><span class="em">02</span> · The map & visual mechanics</h2>
+  <p>The basemap is <a href="https://carto.com" target="_blank" rel="noopener">CARTO</a>'s
+  dark-matter style over <a href="https://www.openstreetmap.org" target="_blank" rel="noopener">OpenStreetMap</a>
+  data, rendered by MapLibre GL. Everything else is drawn on canvas layers on top:</p>
+  <ul>
+    <li><strong>Strike dots.</strong> A new strike lands with a bright white flash, then cools
+    as it ages — the color <em>is</em> the clock:
+    <div class="swatches">
+      <div class="sw" style="background:#ffffff"></div><span class="swl">now</span>
+      <div class="sw" style="background:#ffe082"></div><span class="swl">2 min</span>
+      <div class="sw" style="background:#ff9800"></div><span class="swl">8 min</span>
+      <div class="sw" style="background:#e53935"></div><span class="swl">16 min</span>
+      <div class="sw" style="background:#6e1414"></div><span class="swl">30 min, then gone</span>
+    </div>
+    A storm therefore paints its own track: fresh white at the leading edge, embers trailing behind.</li>
+    <li><strong>Thunder rings.</strong> Each strike near the view emits a ring expanding at
+    <strong>343 m/s — the real speed of sound</strong>. When a ring crosses your house, that's
+    the moment you hear the rumble. Rings fade out at 50 km, past which thunder is rarely audible.</li>
+    <li><strong>Home rings.</strong> Dashed circles at 10, 25 and 50 km around your home make
+    distance readable at a glance.</li>
+    <li><strong>Approach glow.</strong> The amber arc on the 50 km ring points toward recent
+    activity. It's computed from the last 10 minutes of strikes within 120 km, each weighted by
+    <code>1 / (5 + distance)</code> — close strikes dominate. The arc narrows as the activity
+    concentrates in one direction and brightens as it gets closer.</li>
+    <li><strong>Wind flow (WIND).</strong> Hundreds of particles drift across the map along the
+    real wind field: a 5×5 grid of current wind from Open-Meteo (~±130 km around home),
+    bilinearly interpolated, refreshed every 30 minutes. Trails fade like long-exposure
+    photography. It's deliberately subtle — lightning is the star.</li>
+    <li><strong>Rain radar (RADAR).</strong> The latest
+    <a href="https://www.rainviewer.com" target="_blank" rel="noopener">RainViewer</a> composite
+    radar frame, refreshed every 5 minutes, off by default. RainViewer's free tiles stop at
+    zoom level 7, so the radar goes soft when you zoom way in.</li>
+  </ul>
+
+  <h2><span class="em">03</span> · The thunder sound</h2>
+  <p>Alert sounds are synthesized live with WebAudio — no recordings — and are shaped by the
+  <strong>actual distance of the strike</strong>, mimicking how air filters sound over
+  kilometres:</p>
+  <table>
+    <tr><th>Layer</th><th>What it is</th><th>When you hear it</th></tr>
+    <tr><td><strong>Boom</strong></td><td>Blunt low-mid impact with a ragged echo 90 ms later</td>
+    <td>Only within ~12 km, harder and brighter the closer the strike</td></tr>
+    <tr><td><strong>Sub-bass thump</strong></td><td>A 50→30 Hz sine drop — the chest-punch</td>
+    <td>Within ~25 km</td></tr>
+    <tr><td><strong>Rumble</strong></td><td>Brown noise rolling through 3–6 random peaks</td>
+    <td>Always — and it's all that's left of a distant strike</td></tr>
+  </table>
+  <p>Distance changes everything at once: loudness falls roughly tenfold from overhead to
+  50 km; a low-pass filter sweeps from ~465 Hz down to ~85 Hz (far thunder is pure bass);
+  duration stretches from ~2 s to ~6 s; and far thunder swells in slowly instead of starting
+  with a bang. Toggling <strong>SOUND</strong> on plays a preview clap at a simulated 6 km —
+  browsers require one click on the page before any audio is allowed.</p>
+
+  <h2><span class="em">04</span> · Features</h2>
+  <ul>
+    <li><strong>Alert slider.</strong> Sets the alarm radius (5–50 km). Any strike inside it
+    triggers the red banner (distance + compass bearing) and a thunder clap at the strike's real
+    distance, throttled to one clap per 8 seconds.</li>
+    <li><strong>Closest strike.</strong> Distance and bearing of the nearest strike over the
+    last 60 minutes.</li>
+    <li><strong>Strikes / min.</strong> Live intensity meter counting strikes within 100 km —
+    watch it climb as a cell peaks.</li>
+    <li><strong>Wind at home.</strong> Current speed, gusts and direction from Open-Meteo,
+    refreshed every 10 minutes.</li>
+    <li><strong>⚡ STORM.</strong> No storm nearby? This scans the last 10 minutes of the global
+    feed, grids it into 1° cells, and flies you to the most active storm on the planet — at the
+    same zoom as the home view, so strikes, thunder rings, radar and wind all work exactly as
+    they do at home. Press it again to hop to the next-busiest storm; it always skips the one
+    already on screen. While you're away from home, you hear what you'd hear standing at the
+    <em>map center</em> — marked by a faint pulsing crosshair inside a dashed "thunder
+    audible · 50 km" ring. Any strike within that ring plays thunder at its real distance
+    (booms up close, faint rumbles from far cells), and a thunder ring sweeping across the
+    crosshair marks the moment its sound arrives. Home alerts still fire in the background.</li>
+    <li><strong>⌂.</strong> When you've flown away, one press returns you home. When you're
+    already home, it opens the address settings.</li>
+  </ul>
+
+  <h2><span class="em">05</span> · Privacy & sources</h2>
+  <p>Your address is geocoded <strong>once</strong> via OpenStreetMap Nominatim when you set it,
+  then stored only in this browser's localStorage. Nothing about you is sent anywhere else — no
+  accounts, no analytics, no backend.</p>
+  <table>
+    <tr><th>What</th><th>Source</th><th>Cost</th></tr>
+    <tr><td>Lightning strikes</td><td>Blitzortung.org community network</td><td>Free (personal use)</td></tr>
+    <tr><td>Basemap</td><td>CARTO dark-matter · OpenStreetMap</td><td>Free</td></tr>
+    <tr><td>Wind</td><td>Open-Meteo</td><td>Free</td></tr>
+    <tr><td>Rain radar</td><td>RainViewer</td><td>Free (zoom-limited)</td></tr>
+    <tr><td>Geocoding</td><td>OSM Nominatim</td><td>Free, used once</td></tr>
+  </table>
+
+  <h2><span class="em">06</span> · Credits</h2>
+  <p>Downstrike was designed and created by <strong>Leo and Noah Zimmerman</strong>, with help
+  from Claude. Strike data flows thanks to the volunteers of the Blitzortung.org network.</p>
+</div>
+</body>
+</html>

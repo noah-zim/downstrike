@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Blitzortung WS test</title></head>
+<body style="font-family: monospace; background: #111; color: #eee;">
+<h3>Blitzortung WebSocket test</h3>
+<div id="status">connecting…</div>
+<pre id="log"></pre>
+<script>
+// LZW decoder used by the Blitzortung websocket feed
+function lzwDecode(data) {
+  const dict = {};
+  const chars = data.split('');
+  let currChar = chars[0];
+  let oldPhrase = currChar;
+  const out = [currChar];
+  let code = 256;
+  let phrase;
+  for (let i = 1; i < chars.length; i++) {
+    const currCode = chars[i].charCodeAt(0);
+    if (currCode < 256) {
+      phrase = chars[i];
+    } else {
+      phrase = dict[currCode] ? dict[currCode] : (oldPhrase + currChar);
+    }
+    out.push(phrase);
+    currChar = phrase.charAt(0);
+    dict[code] = oldPhrase + currChar;
+    code++;
+    oldPhrase = phrase;
+  }
+  return out.join('');
+}
+
+window.testState = {
+  server: null, connected: false, messages: 0, parsed: 0, errors: 0,
+  firstRaw: null, firstDecoded: null, samples: [], northAmerica: 0,
+};
+
+const servers = ['wss://ws1.blitzortung.org/', 'wss://ws7.blitzortung.org/', 'wss://ws8.blitzortung.org/'];
+let idx = 0;
+
+function connect() {
+  const url = servers[idx % servers.length];
+  window.testState.server = url;
+  document.getElementById('status').textContent = 'trying ' + url;
+  let ws;
+  try { ws = new WebSocket(url); } catch (e) {
+    window.testState.errors++;
+    idx++; setTimeout(connect, 500); return;
+  }
+  const failover = setTimeout(() => { try { ws.close(); } catch (e) {} }, 8000);
+  ws.onopen = () => {
+    clearTimeout(failover);
+    window.testState.connected = true;
+    document.getElementById('status').textContent = 'connected to ' + url;
+    ws.send(JSON.stringify({ a: 111 }));
+  };
+  ws.onmessage = (ev) => {
+    const st = window.testState;
+    st.messages++;
+    if (!st.firstRaw) st.firstRaw = String(ev.data).slice(0, 200);
+    try {
+      const decoded = lzwDecode(ev.data);
+      if (!st.firstDecoded) st.firstDecoded = decoded.slice(0, 300);
+      const strike = JSON.parse(decoded);
+      if (typeof strike.lat === 'number' && typeof strike.lon === 'number') {
+        st.parsed++;
+        if (strike.lat > 15 && strike.lat < 72 && strike.lon > -170 && strike.lon < -50) st.northAmerica++;
+        if (st.samples.length < 8) {
+          st.samples.push({ time: strike.time, lat: strike.lat, lon: strike.lon,
+            delay: strike.delay, mds: strike.mds, stations: (strike.sig || []).length });
+        }
+        if (st.parsed % 50 === 1) {
+          document.getElementById('log').textContent =
+            'msgs=' + st.messages + ' parsed=' + st.parsed + ' NA=' + st.northAmerica;
+        }
+      }
+    } catch (e) { st.errors++; }
+  };
+  ws.onclose = () => {
+    window.testState.connected = false;
+    idx++; setTimeout(connect, 1000);
+  };
+}
+connect();
+</script>
+</body>
+</html>

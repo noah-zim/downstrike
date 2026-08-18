@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Downstrike</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="map"></div>
+<canvas id="wind-canvas" class="overlay-canvas"></canvas>
+<canvas id="strike-canvas" class="overlay-canvas"></canvas>
+
+<header id="brand">
+  <h1>⚡ DOWNSTRIKE</h1>
+  <div id="conn"><span class="dot" id="conn-dot"></span><span id="conn-text">connecting…</span></div>
+</header>
+
+<aside id="hud">
+  <div class="hud-block">
+    <div class="hud-label">Closest strike · 60 min</div>
+    <div class="hud-value" id="closest">—</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Strikes / min · 100 km</div>
+    <div class="hud-value" id="rate">0</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Wind at home</div>
+    <div class="hud-value hud-small" id="wind">—</div>
+  </div>
+</aside>
+
+<div id="banner" class="hidden">
+  <div id="banner-text">⚡ Strike nearby</div>
+</div>
+
+<footer id="controls">
+  <button id="btn-radar" class="ctl" title="Rain radar overlay">RADAR</button>
+  <button id="btn-wind" class="ctl on" title="Wind particle flow">WIND</button>
+  <button id="btn-sound" class="ctl on" title="Alert sound">SOUND</button>
+  <div class="ctl slider-wrap" title="Alert distance">
+    <span>ALERT</span>
+    <input type="range" id="alert-km" min="5" max="50" step="1" value="20">
+    <span id="alert-km-label">20 km</span>
+  </div>
+  <button id="btn-storm" class="ctl" title="Fly to the most active storm on Earth right now">⚡ STORM</button>
+  <button id="btn-home" class="ctl" title="Return home · change address">⌂</button>
+  <a id="btn-info" class="ctl" href="info.html" title="How Downstrike works">ⓘ</a>
+</footer>
+
+<div id="setup" class="modal hidden">
+  <div class="modal-card">
+    <h2>⚡ Downstrike</h2>
+    <p>Set your home location. It's geocoded once (OpenStreetMap Nominatim) and stored only in this browser.</p>
+    <form class="search-row" id="addr-form">
+      <input id="addr" type="text" placeholder="Street, city…" autocomplete="off">
+      <button id="addr-go" type="submit">Search</button>
+    </form>
+    <ul id="addr-results"></ul>
+    <p class="fine" id="setup-hint"></p>
+  </div>
+</div>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

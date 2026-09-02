@@ -1,5 +1,6 @@
 // HUD readouts, controls, setup modal, alert banner.
 import { compass } from './geo.js';
+import { getPosition } from './native.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -142,4 +143,31 @@ export function openSetup(onPick) {
     }
   };
   $('addr-form').onsubmit = (e) => { e.preventDefault(); search(); };
+
+  const locBtn = $('use-location');
+  locBtn.disabled = false;
+  locBtn.onclick = async () => {
+    locBtn.disabled = true;
+    locBtn.textContent = '📍 Finding you…';
+    try {
+      const pos = await getPosition();
+      let label = 'My location';
+      try {
+        const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2' +
+          `&lat=${pos.lat.toFixed(5)}&lon=${pos.lon.toFixed(5)}`,
+          { headers: { 'Accept-Language': 'en' } });
+        const j = await res.json();
+        if (j.display_name) label = j.display_name.split(',').slice(0, 2).join(',');
+      } catch (e) {}
+      const home = { lat: pos.lat, lon: pos.lon, label };
+      saveHome(home);
+      modal.classList.add('hidden');
+      onPick(home);
+    } catch (e) {
+      hint.textContent = "Couldn't get your location — check permissions, or search instead.";
+    } finally {
+      locBtn.disabled = false;
+      locBtn.textContent = '📍 Use my location';
+    }
+  };
 }

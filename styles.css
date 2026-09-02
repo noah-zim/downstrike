@@ -256,6 +256,33 @@ input[type="range"] {
 
 .hidden { display: none !important; }
 
+/* ---- phones ---- */
+@media (max-width: 700px) {
+  #brand { padding: 8px 10px; }
+  #brand h1 { font-size: 14px; letter-spacing: 2px; }
+  #conn { font-size: 10px; }
+  #hud { width: 148px; gap: 6px; }
+  .hud-block { padding: 8px 10px; }
+  .hud-value { font-size: 18px; }
+  .hud-small { font-size: 13px; }
+  #controls {
+    left: 8px;
+    right: 8px;
+    transform: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .ctl { padding: 8px 10px; font-size: 11px; letter-spacing: 1px; }
+  input[type="range"] { width: 70px; }
+  #banner {
+    font-size: 14px;
+    padding: 10px 14px;
+    width: max-content;
+    max-width: 92vw;
+  }
+}
+
 .maplibregl-ctrl-attrib {
   background: rgba(10, 12, 16, 0.7) !important;
   font-size: 10px;

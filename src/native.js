@@ -10,12 +10,13 @@ export function getPosition() {
     return new Promise((resolve, reject) => {
       pendingLocation = { resolve, reject };
       window.webkit.messageHandlers.downstrike.postMessage({ type: 'getLocation' });
+      // generous: first use includes the user reading the permission dialog
       setTimeout(() => {
         if (pendingLocation) {
           pendingLocation.reject(new Error('timeout'));
           pendingLocation = null;
         }
-      }, 15000);
+      }, 60000);
     });
   }
   return new Promise((resolve, reject) => {

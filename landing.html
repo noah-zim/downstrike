@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Downstrike — watch lightning strike, live</title>
+<meta name="description" content="A free, live lightning map centered on your home. Real bolts appear seconds after they flash; thunder rings expand at the true speed of sound. By Leo and Noah Zimmerman.">
+<meta property="og:title" content="Downstrike — watch lightning strike, live">
+<meta property="og:description" content="A free, live lightning map centered on your home. Real bolts, seconds after they flash. Thunder rings at the real speed of sound.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23ffd54f' d='M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --panel: rgba(13, 16, 22, 0.82);
+    --panel-border: rgba(255, 213, 79, 0.14);
+    --text: #e8eaf0;
+    --muted: #8a93a5;
+    --amber: #ffd54f;
+    --amber-hot: #ffab00;
+    --danger: #ff5252;
+    --rain: #6ea8fe;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  #sky {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 0 22px 60px;
+  }
+
+  /* ---- header ---- */
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 26px 0 0;
+  }
+  .top svg { width: 22px; height: 22px; }
+  .wordmark {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--amber);
+  }
+
+  /* ---- hero ---- */
+  .hero {
+    text-align: center;
+    padding: 74px 0 40px;
+  }
+  .hero h1 {
+    margin: 0 auto 16px;
+    max-width: 15ch;
+    font-size: clamp(34px, 6vw, 58px);
+    line-height: 1.08;
+    letter-spacing: -0.5px;
+    font-weight: 800;
+    text-wrap: balance;
+  }
+  .hero h1 .em { color: var(--amber); }
+  .hero .sub {
+    margin: 0 auto;
+    max-width: 52ch;
+    color: var(--muted);
+    font-size: clamp(15px, 2.2vw, 18px);
+    line-height: 1.55;
+    text-wrap: balance;
+  }
+  .cta-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 30px;
+  }
+  .cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    text-decoration: none;
+    background: var(--panel);
+    border: 1px solid rgba(255, 213, 79, 0.35);
+    border-radius: 12px;
+    padding: 13px 20px;
+    color: var(--text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 0 14px rgba(255, 213, 79, 0.10);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .cta:hover {
+    border-color: var(--amber);
+    box-shadow: 0 0 22px rgba(255, 213, 79, 0.28);
+  }
+  .cta svg {
+    width: 22px; height: 22px;
+    fill: none;
+    stroke: var(--amber);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: none;
+  }
+  .cta b { display: block; font-size: 15px; }
+  .cta small { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* ---- live demo ---- */
+  .demo-frame {
+    position: relative;
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: #06070a;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(255, 213, 79, 0.05);
+  }
+  .demo-frame iframe {
+    display: block;
+    width: 100%;
+    height: clamp(420px, 64vh, 640px);
+    border: 0;
+  }
+  .live-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 6px rgba(255, 82, 82, 0.8);
+    animation: live-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .demo-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 18px;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    font-family: inherit;
+  }
+  .demo-shield span {
+    background: var(--panel);
+    border: 1px solid rgba(255, 213, 79, 0.35);
+    border-radius: 999px;
+    padding: 9px 18px;
+    font-size: 13px;
+    color: var(--text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  }
+  .demo-shield span b { color: var(--amber); }
+  .demo-cap {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 14px auto 0;
+    max-width: 60ch;
+  }
+
+  /* ---- beats ---- */
+  .beat {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 44px;
+    align-items: center;
+    margin-top: 110px;
+  }
+  .beat.flip .beat-viz { order: 2; }
+  .beat h2 {
+    margin: 0 0 12px;
+    font-size: clamp(22px, 3.4vw, 30px);
+    line-height: 1.15;
+    letter-spacing: -0.3px;
+  }
+  .beat h2 .em { color: var(--amber); }
+  .beat p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15.5px;
+    line-height: 1.65;
+  }
+  .beat p strong { color: var(--text); font-weight: 600; }
+  .beat-viz {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    min-height: 230px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    overflow: hidden;
+  }
+  .beat-note {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .beat-note a { color: var(--amber); }
+
+  /* rings viz */
+  .rings-svg { width: 100%; max-width: 440px; height: auto; display: block; }
+  .ring {
+    fill: none;
+    stroke: var(--amber);
+    vector-effect: non-scaling-stroke;
+    stroke-width: 1.5;
+    transform-origin: 0 0;
+    animation: ring-grow 5.6s linear infinite;
+  }
+  .ring.r2 { animation-delay: 2.8s; }
+  @keyframes ring-grow {
+    0%   { transform: scale(2); opacity: 0.9; }
+    80%  { opacity: 0.45; }
+    100% { transform: scale(330); opacity: 0; }
+  }
+  .rings-house {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: house-rumble 5.6s linear infinite;
+  }
+  @keyframes house-rumble {
+    0%, 76%, 88%, 100% { stroke: var(--muted); filter: none; }
+    80%, 84% { stroke: var(--amber); filter: drop-shadow(0 0 6px rgba(255, 213, 79, 0.9)); }
+  }
+  .rumble-label {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    fill: var(--muted);
+    text-transform: uppercase;
+    font-family: inherit;
+  }
+
+  /* storm button viz */
+  .storm-demo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 34px 0;
+  }
+  .storm-demo a {
+    width: 76px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel);
+    border: 1px solid rgba(255, 213, 79, 0.55);
+    border-radius: 20px;
+    box-shadow: 0 0 22px rgba(255, 213, 79, 0.25);
+    transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+    animation: storm-breathe 2.6s ease-in-out infinite;
+  }
+  @keyframes storm-breathe {
+    0%, 100% { box-shadow: 0 0 16px rgba(255, 213, 79, 0.20); }
+    50% { box-shadow: 0 0 30px rgba(255, 213, 79, 0.40); }
+  }
+  .storm-demo a:hover { border-color: var(--amber); }
+  .storm-demo a:active { transform: scale(0.94); }
+  .storm-demo svg { width: 36px; height: 36px; fill: var(--amber); }
+  .storm-demo .try {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+
+  /* iOS viz: a real capture — actual NWS warning during a Michigan storm */
+  .ios-viz {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 20px;
+  }
+  .ios-viz img {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    border-radius: 14px;
+    border: 1px solid var(--panel-border);
+  }
+  .ios-viz figcaption {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ---- story ---- */
+  .story {
+    margin-top: 120px;
+    text-align: center;
+  }
+  .story .card {
+    display: inline-block;
+    max-width: 620px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 30px 34px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .story h2 { margin: 0 0 10px; font-size: 21px; }
+  .story h2 .em { color: var(--amber); }
+  .story p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .story p strong { color: var(--text); font-weight: 600; }
+
+  /* ---- footer ---- */
+  footer {
+    margin-top: 90px;
+    border-top: 1px solid var(--panel-border);
+    padding-top: 24px;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.9;
+    text-align: center;
+  }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--amber); }
+  .credit { margin-top: 8px; color: #aab2c2; }
+  .credit a { color: var(--amber); text-decoration: none; }
+
+  /* ---- phones ---- */
+  @media (max-width: 760px) {
+    .hero { padding-top: 52px; }
+    .beat { grid-template-columns: 1fr; gap: 20px; margin-top: 72px; }
+    .beat.flip .beat-viz { order: 0; }
+    .story { margin-top: 84px; }
+    .story .card { padding: 24px 20px; }
+    .cta { flex: 1 1 100%; justify-content: center; text-align: center; }
+    .cta b, .cta small { text-align: left; }
+    .demo-frame iframe { height: 66vh; min-height: 400px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ring, .rings-house, .live-dot, .storm-demo a { animation: none; }
+    .ring { transform: scale(80); opacity: 0.35; }
+    .ring.r2 { transform: scale(200); opacity: 0.15; }
+  }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="page">
+
+  <header class="top">
+    <svg viewBox="0 0 20 20" fill="#ffd54f" aria-hidden="true"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
+    <span class="wordmark">DOWNSTRIKE</span>
+  </header>
+
+  <section class="hero">
+    <h1 id="headline">Watch lightning <span class="em">strike</span>. Live.</h1>
+    <p class="sub" id="subline">A free map of every bolt on Earth, seconds after it flashes —
+    centered on your home.</p>
+    <div class="cta-row">
+      <a class="cta" href="https://testflight.apple.com/join/aU1kg1QK">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5.5" y="2.5" width="9" height="15" rx="2.2"/><path d="M8.6 15h2.8"/></svg>
+        <span><b>Get it on iPhone</b><small>free TestFlight beta</small></span>
+      </a>
+      <a class="cta" href="https://noah-zim.github.io/downstrike/">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.7 2.3 2.7 12.7 0 15-2.7-2.3-2.7-12.7 0-15z"/></svg>
+        <span><b>Open the live map</b><small>free, right in your browser</small></span>
+      </a>
+    </div>
+  </section>
+
+  <section class="demo">
+    <div class="demo-frame">
+      <div class="live-badge"><span class="live-dot"></span> live</div>
+      <iframe id="app-frame" src="index.html?storm" title="Downstrike — the live lightning map" allow="geolocation"></iframe>
+      <button class="demo-shield" id="shield" aria-label="Activate the live map">
+        <span><b>This is the real app.</b> Click to explore — pan, zoom, press the bolt.</span>
+      </button>
+    </div>
+    <p class="demo-cap">Flying you to the most active storm on Earth right now. Every dot is a
+    real bolt, seconds old — white when it lands, ember-red as it cools.</p>
+  </section>
+
+  <section class="beat">
+    <div class="beat-viz">
+      <svg class="rings-svg" viewBox="0 0 440 180" aria-hidden="true">
+        <g transform="translate(78,92)">
+          <circle class="ring" r="1"/>
+          <circle class="ring r2" r="1"/>
+        </g>
+        <path transform="translate(64,74) scale(1.7)" fill="#ffd54f" d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/>
+        <path class="rings-house" transform="translate(330,74) scale(1.7)" d="M4 10.2l6-5.7 6 5.7V16h-4.2v-3.6H8.2V16H4v-5.8z"/>
+        <text class="rumble-label" x="78" y="152" text-anchor="middle">strike</text>
+        <text class="rumble-label" x="347" y="152" text-anchor="middle">your house</text>
+        <text class="rumble-label" x="212" y="42" text-anchor="middle" fill="#ffd54f">343 m/s</text>
+      </svg>
+    </div>
+    <div>
+      <h2>See the <span class="em">thunder</span> coming</h2>
+      <p>Every strike sends out a ring growing at the real speed of sound. When a ring crosses
+      your house, that's the <strong>exact moment</strong> you hear the rumble. Turn sound on and
+      the map plays it too — close strikes crack, far ones roll.</p>
+      <span class="beat-note">Curious how volunteers find every bolt with radio and a stopwatch?
+      <a href="info.html">Read how it works</a>.</span>
+    </div>
+  </section>
+
+  <section class="beat flip">
+    <div class="beat-viz">
+      <div class="storm-demo">
+        <a href="index.html?storm" target="_blank" rel="noopener" title="Fly to the most active storm on Earth right now">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
+        </a>
+        <span class="try">Go on — press it.</span>
+      </div>
+    </div>
+    <div>
+      <h2>No storm near you? <span class="em">Borrow one.</span></h2>
+      <p>The big glowing bolt is <strong>STORM</strong>. One press flies you to the most active
+      storm on Earth right now; press again to hop to the next. Somewhere, it is always
+      storming.</p>
+    </div>
+  </section>
+
+  <section class="beat">
+    <div class="beat-viz">
+      <figure class="ios-viz" style="margin:0">
+        <img src="assets/ios-warning.jpg" width="523" height="720"
+          alt="Downstrike on iPhone: a Severe Thunderstorm Warning push notification over a live lightning map of a Michigan storm">
+        <figcaption>Not a mockup — a real warning during a real Michigan storm.</figcaption>
+      </figure>
+    </div>
+    <div>
+      <h2>On iPhone: warnings and rain, <span class="em">to the minute</span></h2>
+      <p>The iOS app adds official <strong>National Weather Service</strong> storm warnings as
+      push notifications — US only, even with the app closed — and a minute-by-minute strip of
+      when rain starts and stops at your house over the next hour.</p>
+      <span class="beat-note"><a href="https://testflight.apple.com/join/aU1kg1QK">Join the free
+      TestFlight beta</a>.</span>
+    </div>
+  </section>
+
+  <section class="story">
+    <div class="card">
+      <h2>Made by a dad and a kid <span class="em">⚡</span></h2>
+      <p>Downstrike is a father–son project by <strong>Leo and Noah Zimmerman</strong>, built
+      with help from Claude. It's the lightning map we wanted to watch from our own window —
+      free, no accounts, no ads, and it stays that way. The strikes come from
+      <strong>Blitzortung.org</strong>, volunteers around the world listening for lightning with
+      antennas in their backyards.</p>
+    </div>
+  </section>
+
+  <footer>
+    Lightning data: Blitzortung.org volunteers · Map: © CARTO, © OpenStreetMap contributors ·
+    Wind: Open-Meteo · Radar: RainViewer ·
+    Nowcast: <a href="https://weatherkit.apple.com/legal-attribution.html" rel="noopener"> Weather</a> ·
+    Warnings: National Weather Service
+    <div class="credit">Designed and created by Leo and Noah Zimmerman, with help from Claude ·
+    <a href="info.html">How Downstrike works</a></div>
+  </footer>
+
+</div>
+
+<script>
+// ---- headline preview: ?h=1|2|3 lets Noah compare drafts on the real page ----
+(function () {
+  const H = {
+    1: ['Watch lightning <span class="em">strike</span>. Live.',
+        'A free map of every bolt on Earth, seconds after it flashes — centered on your home.'],
+    2: ['See the <span class="em">thunder</span> coming.',
+        'Every strike sends a ring out at the real speed of sound. When it crosses your house — that\'s the rumble. Free, live, centered on your home.'],
+    3: ['A lightning map centered on <span class="em">your house</span>.',
+        'Real bolts land seconds after they flash, then cool from white to ember-red. Free, no accounts, made by a dad and a kid.'],
+  };
+  const pick = H[new URLSearchParams(location.search).get('h')];
+  if (pick) {
+    document.getElementById('headline').innerHTML = pick[0];
+    document.getElementById('subline').textContent = pick[1];
+  }
+})();
+
+// ---- live demo: shield keeps page scroll working until the visitor opts in ----
+document.getElementById('shield').addEventListener('click', function () {
+  this.remove();
+});
+
+// ---- ambient storm: sparse simulated strikes behind the page ----
+(function () {
+  const canvas = document.getElementById('sky');
+  const ctx = canvas.getContext('2d');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, dpr;
+
+  function size() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  size();
+  addEventListener('resize', () => { size(); if (reduced) still(); });
+
+  // strike age → ember color, same ramp as the app
+  const RAMP = [
+    [0,   [255, 255, 255]],
+    [0.1, [255, 224, 130]],
+    [0.35,[255, 152, 0]],
+    [0.65,[229, 57, 53]],
+    [1,   [110, 20, 20]],
+  ];
+  function ember(a) { // a: 0..1
+    for (let k = 1; k < RAMP.length; k++) {
+      if (a <= RAMP[k][0]) {
+        const [a0, c0] = RAMP[k - 1], [a1, c1] = RAMP[k];
+        const t = (a - a0) / (a1 - a0);
+        return c0.map((v, i) => Math.round(v + (c1[i] - v) * t));
+      }
+    }
+    return RAMP[RAMP.length - 1][1];
+  }
+
+  const LIFE = 60000; // ms until an ember fades out
+  const strikes = [];
+  function spawn(age) {
+    strikes.push({
+      x: 30 + Math.random() * (W - 60),
+      y: 30 + Math.random() * (H - 60),
+      t: performance.now() - (age || 0),
+    });
+  }
+
+  if (reduced) { // a few static embers, no animation
+    function still() {
+      ctx.clearRect(0, 0, W, H);
+      for (let i = 0; i < 7; i++) {
+        const c = ember(0.3 + Math.random() * 0.6);
+        ctx.fillStyle = 'rgba(' + c.join(',') + ',0.35)';
+        ctx.beginPath();
+        ctx.arc(30 + Math.random() * (W - 60), 30 + Math.random() * (H - 60), 2, 0, 7);
+        ctx.fill();
+      }
+    }
+    still();
+    window.still = still;
+    return;
+  }
+
+  for (let i = 0; i < 5; i++) spawn(Math.random() * LIFE * 0.8); // seed an aged sky
+  let nextSpawn = performance.now() + 1500;
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (document.hidden) return;
+    if (now >= nextSpawn) {
+      spawn(0);
+      nextSpawn = now + 2500 + Math.random() * 4500;
+    }
+    ctx.clearRect(0, 0, W, H);
+    for (let i = strikes.length - 1; i >= 0; i--) {
+      const s = strikes[i];
+      const age = now - s.t;
+      if (age > LIFE * 1.2) { strikes.splice(i, 1); continue; }
+      const a = Math.min(1, age / LIFE);
+      const c = ember(a);
+      const fade = age > LIFE ? 1 - (age - LIFE) / (LIFE * 0.2) : 1;
+
+      // the landing flash
+      if (age < 500) {
+        const f = 1 - age / 500;
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.5 * f) + ')';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 2 + 10 * f, 0, 7);
+        ctx.fill();
+      }
+      // the ember dot
+      ctx.fillStyle = 'rgba(' + c.join(',') + ',' + (0.5 * fade) + ')';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 2, 0, 7);
+      ctx.fill();
+      // two thunder rings, expanding at a calm on-screen speed of sound
+      for (const delay of [0, 2600]) {
+        const ra = age - delay;
+        if (ra < 0) continue;
+        const r = ra * 0.035; // px per ms
+        if (r > 260) continue;
+        ctx.strokeStyle = 'rgba(255,213,79,' + (0.16 * (1 - r / 260)) + ')';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, r, 0, 7);
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+<script data-goatcounter="https://downstrike.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

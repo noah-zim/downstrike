@@ -50,13 +50,17 @@ function homeView(home) {
 }
 
 async function boot() {
+  // ?storm: embed mode for the landing page — no setup modal, start on a wide
+  // world view, then fly to the most active storm on Earth once one is found.
+  const embedStorm = new URLSearchParams(location.search).has('storm');
   const style = await pickStyle();
-  const center = store.home ? [store.home.lon, store.home.lat] : [-95, 40];
+  const center = store.home ? [store.home.lon, store.home.lat]
+    : embedStorm ? [-40, 22] : [-95, 40];
   const map = new maplibregl.Map({
     container: 'map',
     style,
     center,
-    zoom: store.home ? 8.4 : 3.6,
+    zoom: store.home ? 8.4 : embedStorm ? 1.7 : 3.6,
     attributionControl: { compact: true },
   });
   if (window.innerWidth > 700) { // phones pinch-zoom; the widget collides with the icon row
@@ -196,6 +200,24 @@ async function boot() {
     ui.showToast('The storm is already on your screen'); // no other active storm on Earth
   };
 
+  // embed mode: auto-fly to the biggest storm as soon as enough strikes have
+  // streamed in to locate one — unless the visitor has started exploring
+  if (embedStorm && !store.home) {
+    let exploring = false;
+    map.on('dragstart', () => { exploring = true; });
+    map.on('wheel', () => { exploring = true; });
+    const tryFly = setInterval(() => {
+      if (exploring) { clearInterval(tryFly); return; }
+      const storms = findLiveStorms(store.strikes);
+      if (!storms.length) return;
+      clearInterval(tryFly);
+      const s = storms[0];
+      map.flyTo({ center: [s.lon, s.lat], zoom: 8.4, speed: 0.9 });
+      fetchWindField({ lat: s.lat, lon: s.lon })
+        .then((f) => particles.setField(f)).catch(() => {});
+    }, 2500);
+  }
+
   // ---- push storm alerts + WeatherKit nowcast (iOS app only) ----
   let alertsOn = false;
   window._alertsStatus = (state) => {
@@ -216,7 +238,7 @@ async function boot() {
 
   if (isApp) queryAlertsState(); // reveals the alerts toggle in settings
 
-  if (!store.home) ui.openSetup(onHome);
+  if (!store.home && !embedStorm) ui.openSetup(onHome);
 }
 
 boot();

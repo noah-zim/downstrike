@@ -89,6 +89,17 @@ html, body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  transform-origin: top center;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.97);
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+              transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#hud.open {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 .hud-conn {
   grid-column: 1 / -1;
@@ -214,7 +225,6 @@ html, body {
   position: absolute;
   bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   left: 50%;
-  transform: translateX(-50%);
   z-index: 30;
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -225,14 +235,29 @@ html, body {
   white-space: nowrap;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
-/* ---- settings sheet ---- */
+/* ---- settings sheet (iOS-style slide-up) ---- */
 #sheet-scrim {
   position: absolute;
   inset: 0;
   z-index: 40;
   background: rgba(5, 6, 9, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#sheet-scrim.open {
+  opacity: 1;
+  pointer-events: auto;
 }
 #sheet {
   position: absolute;
@@ -244,7 +269,49 @@ html, body {
   padding: 12px 18px calc(30px + env(safe-area-inset-bottom, 0px));
   max-width: 560px;
   margin: 0 auto;
+  transform: translateY(105%);
+  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
 }
+#sheet.open {
+  transform: none;
+}
+
+/* ---- iOS-style switches ---- */
+.sheet-row-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 14px;
+  color: var(--text);
+}
+.switch {
+  width: 46px;
+  height: 28px;
+  border-radius: 14px;
+  border: none;
+  background: #2a3040;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+  transition: background 0.25s ease;
+}
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.switch.on { background: var(--amber); }
+.switch.on .switch-knob { transform: translateX(18px); }
 .sheet-handle {
   width: 36px; height: 4px;
   border-radius: 2px;

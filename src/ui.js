@@ -64,15 +64,14 @@ let toastTimer = null;
 export function showToast(text) {
   const t = $('toast');
   t.textContent = text;
-  t.classList.remove('hidden');
+  t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.add('hidden'), 2600);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
 export function updateAlertsButton(state) {
-  const btn = $('btn-alerts');
-  btn.classList.remove('hidden');
-  btn.classList.toggle('on', state === 'on');
+  $('row-alerts').classList.remove('hidden');
+  $('sw-alerts').classList.toggle('on', state === 'on');
   if (state === 'denied') {
     showToast('Notifications are off — enable them in iOS Settings.');
   } else if (state === 'error') {
@@ -135,7 +134,7 @@ export function wireControls(settings, handlers) {
   const sync = () => {
     $('btn-radar').classList.toggle('on', settings.radar);
     $('btn-wind').classList.toggle('on', settings.wind);
-    $('btn-sound').classList.toggle('on', settings.sound);
+    $('sw-sound').classList.toggle('on', settings.sound);
     $('alert-km').value = settings.alertKm;
     $('alert-km-label').textContent = `${settings.alertKm} km`;
   };
@@ -148,7 +147,7 @@ export function wireControls(settings, handlers) {
     settings.wind = !settings.wind; saveSettings(settings); sync();
     handlers.onWind(settings.wind);
   };
-  $('btn-sound').onclick = () => {
+  $('sw-sound').onclick = () => {
     settings.sound = !settings.sound; saveSettings(settings); sync();
     if (handlers.onSound) handlers.onSound(settings.sound);
   };
@@ -158,24 +157,24 @@ export function wireControls(settings, handlers) {
   $('btn-home').onclick = () => handlers.onHomeClick();
   $('btn-storm').onclick = () => handlers.onStorm();
   if (handlers.onAlertsToggle) {
-    $('btn-alerts').onclick = () => handlers.onAlertsToggle();
+    $('sw-alerts').onclick = () => handlers.onAlertsToggle();
   }
 
   // strip tap: expand/collapse the detail cards (remembered per browser)
   const setHud = (open) => {
-    $('hud').classList.toggle('hidden', !open);
+    $('hud').classList.toggle('open', open);
     $('strip').classList.toggle('open', open);
     try { localStorage.setItem('downstrike.hudOpen', open ? '1' : '0'); } catch (e) {}
   };
-  $('strip').onclick = () => setHud($('hud').classList.contains('hidden'));
+  $('strip').onclick = () => setHud(!$('hud').classList.contains('open'));
   let hudOpen = false;
   try { hudOpen = localStorage.getItem('downstrike.hudOpen') === '1'; } catch (e) {}
   setHud(hudOpen);
 
   // settings sheet
   const openSheet = (open) => {
-    $('sheet').classList.toggle('hidden', !open);
-    $('sheet-scrim').classList.toggle('hidden', !open);
+    $('sheet').classList.toggle('open', open);
+    $('sheet-scrim').classList.toggle('open', open);
   };
   $('btn-settings').onclick = () => openSheet(true);
   $('sheet-scrim').onclick = () => openSheet(false);

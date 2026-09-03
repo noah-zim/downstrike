@@ -30,7 +30,7 @@
   <svg class="s-ico" id="s-chevron" viewBox="0 0 20 20"><path d="M6 8.5l4 4 4-4"/></svg>
 </header>
 
-<aside id="hud" class="hidden">
+<aside id="hud">
   <div class="hud-block">
     <div class="hud-label">Closest strike · 60 min</div>
     <div class="hud-value" id="closest">—</div>
@@ -57,17 +57,11 @@
 </div>
 
 <footer id="controls">
-  <button id="btn-alerts" class="icon-btn hidden" title="Storm warning notifications">
-    <svg viewBox="0 0 20 20"><path d="M10 3a5 5 0 0 1 5 5v3.2l1.4 2.3H3.6L5 11.2V8a5 5 0 0 1 5-5z"/><path d="M8.4 16.4a1.8 1.8 0 0 0 3.2 0"/></svg>
-  </button>
   <button id="btn-radar" class="icon-btn" title="Rain radar">
     <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3.2" opacity="0.6"/><path d="M10 10l4.6-4.6"/></svg>
   </button>
   <button id="btn-wind" class="icon-btn" title="Wind flow">
     <svg viewBox="0 0 20 20"><path d="M3 7.5h8.5a2.2 2.2 0 1 0-2.2-3.4"/><path d="M3 12h11.5a2.2 2.2 0 1 1-2.2 3.4"/></svg>
-  </button>
-  <button id="btn-sound" class="icon-btn" title="Thunder sound">
-    <svg viewBox="0 0 20 20"><path d="M4 8v4h2.8L11 15.4V4.6L6.8 8H4z"/><path d="M13.6 7.2a4 4 0 0 1 0 5.6"/></svg>
   </button>
   <button id="btn-storm" class="icon-btn storm-btn" title="Fly to the most active storm on Earth right now">
     <svg viewBox="0 0 20 20" class="storm-bolt"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
@@ -80,10 +74,10 @@
   </button>
 </footer>
 
-<div id="toast" class="hidden"></div>
+<div id="toast"></div>
 
-<div id="sheet-scrim" class="hidden"></div>
-<div id="sheet" class="hidden">
+<div id="sheet-scrim"></div>
+<div id="sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title">Settings</div>
   <div class="sheet-block">
@@ -92,6 +86,14 @@
       <span id="alert-km-label" class="amber">20 km</span>
     </div>
     <input type="range" id="alert-km" min="5" max="50" step="1" value="20">
+  </div>
+  <div class="sheet-row-toggle hidden" id="row-alerts">
+    <span>Storm warning notifications</span>
+    <button class="switch" id="sw-alerts" aria-label="Storm warning notifications"><span class="switch-knob"></span></button>
+  </div>
+  <div class="sheet-row-toggle">
+    <span>Thunder sound</span>
+    <button class="switch" id="sw-sound" aria-label="Thunder sound"><span class="switch-knob"></span></button>
   </div>
   <button id="sheet-home" class="sheet-row">Change home location</button>
   <a class="sheet-row" href="info.html">How Downstrike works</a>

@@ -214,10 +214,7 @@ async function boot() {
     onAlertsToggle: isApp ? () => setAlerts(!alertsOn) : null,
   });
 
-  if (isApp) {
-    document.getElementById('btn-alerts').classList.remove('hidden');
-    queryAlertsState();
-  }
+  if (isApp) queryAlertsState(); // reveals the alerts toggle in settings
 
   if (!store.home) ui.openSetup(onHome);
 }

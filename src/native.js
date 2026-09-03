@@ -29,6 +29,18 @@ export function getPosition() {
   });
 }
 
+// iOS-app-only: toggle push storm alerts / query their current state.
+// Results arrive via window._alertsStatus('on'|'off'|'denied'|'error').
+export function setAlerts(enabled) {
+  if (!isApp) return;
+  window.webkit.messageHandlers.downstrike.postMessage({ type: 'setAlerts', enabled });
+}
+
+export function queryAlertsState() {
+  if (!isApp) return;
+  window.webkit.messageHandlers.downstrike.postMessage({ type: 'alertsState' });
+}
+
 // Called by the native shell with the result of a getLocation request.
 window._nativeLocation = (lat, lon, errMsg) => {
   if (!pendingLocation) return;

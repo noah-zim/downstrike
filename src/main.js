@@ -5,6 +5,7 @@ import { Radar } from './radar.js';
 import { armAudio, thunder } from './audio.js';
 import { distKm, bearingDeg, compass, destPoint } from './geo.js';
 import { findLiveStorms } from './storm.js';
+import { isApp, setAlerts, queryAlertsState } from './native.js';
 import * as ui from './ui.js';
 
 const CARTO_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -193,13 +194,27 @@ async function boot() {
     ui.flashButton('btn-storm', 'STORM IS HERE'); // the only active storm is on screen
   };
 
+  // ---- push storm alerts + WeatherKit nowcast (iOS app only) ----
+  let alertsOn = false;
+  window._alertsStatus = (state) => {
+    alertsOn = state === 'on';
+    ui.updateAlertsButton(state);
+  };
+  window._nowcast = (data) => ui.updateNowcast(data);
+
   ui.wireControls(settings, {
     onRadar: (on) => radar.setEnabled(on).catch(() => {}),
     onWind: (on) => particles.setEnabled(on),
     onSound: (on) => { if (on) { armAudio(); thunder(6); } }, // preview incl. the close boom
     onHomeClick,
     onStorm,
+    onAlertsToggle: isApp ? () => setAlerts(!alertsOn) : null,
   });
+
+  if (isApp) {
+    document.getElementById('btn-alerts').classList.remove('hidden');
+    queryAlertsState();
+  }
 
   if (!store.home) ui.openSetup(onHome);
 }

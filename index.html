@@ -31,6 +31,12 @@
     <div class="hud-label">Wind at home</div>
     <div class="hud-value hud-small" id="wind">—</div>
   </div>
+  <div class="hud-block hidden" id="nowcast">
+    <div class="hud-label">Next hour rain</div>
+    <canvas id="nowcast-chart" width="180" height="34"></canvas>
+    <div class="hud-small" id="nowcast-text"></div>
+    <a class="wk-attrib" href="https://weatherkit.apple.com/legal-attribution.html" target="_blank" rel="noopener"> Weather</a>
+  </div>
 </aside>
 
 <div id="banner" class="hidden">
@@ -38,6 +44,7 @@
 </div>
 
 <footer id="controls">
+  <button id="btn-alerts" class="ctl hidden" title="Push notifications for official storm warnings at your location">ALERTS</button>
   <button id="btn-radar" class="ctl" title="Rain radar overlay">RADAR</button>
   <button id="btn-wind" class="ctl on" title="Wind particle flow">WIND</button>
   <button id="btn-sound" class="ctl on" title="Alert sound">SOUND</button>

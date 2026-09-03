@@ -56,6 +56,46 @@ export function updateReadouts({ closest, rate, wind }) {
   }
 }
 
+export function updateAlertsButton(state) {
+  const btn = $('btn-alerts');
+  btn.classList.remove('hidden');
+  btn.classList.toggle('on', state === 'on');
+  if (state === 'denied') {
+    btn.textContent = 'ALERTS OFF · see Settings';
+    setTimeout(() => { btn.textContent = 'ALERTS'; }, 4000);
+  } else {
+    btn.textContent = 'ALERTS';
+  }
+}
+
+// Minute-by-minute rain for the next hour (from the iOS shell's WeatherKit).
+export function updateNowcast(data) {
+  const minutes = (data && data.minutes) || [];
+  if (!minutes.length) return;
+  $('nowcast').classList.remove('hidden');
+  const canvas = $('nowcast-chart');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const n = Math.min(60, minutes.length);
+  const w = canvas.width / 60;
+  let firstRain = -1;
+  for (let i = 0; i < n; i++) {
+    const m = minutes[i];
+    const chance = m.p || 0;
+    const intensity = m.i || 0;
+    if (firstRain < 0 && chance >= 0.3 && intensity > 0.05) firstRain = i;
+    const h = Math.max(chance >= 0.3 ? 3 : 1, Math.min(1, intensity / 6) * canvas.height);
+    ctx.fillStyle = chance >= 0.3
+      ? `rgba(110, 168, 254, ${0.35 + 0.65 * chance})`
+      : 'rgba(138, 147, 165, 0.25)';
+    ctx.fillRect(i * w, canvas.height - h, w - 1, h);
+  }
+  const text = $('nowcast-text');
+  if (firstRain === 0) text.textContent = 'Raining now';
+  else if (firstRain > 0) text.textContent = `Rain in ~${firstRain} min`;
+  else text.textContent = 'No rain next hour';
+}
+
 let bannerTimer = null;
 export function showBanner(text) {
   $('banner-text').textContent = text;
@@ -90,6 +130,9 @@ export function wireControls(settings, handlers) {
   };
   $('btn-home').onclick = () => handlers.onHomeClick();
   $('btn-storm').onclick = () => handlers.onStorm();
+  if (handlers.onAlertsToggle) {
+    $('btn-alerts').onclick = () => handlers.onAlertsToggle();
+  }
 }
 
 // Briefly swap a button's label (e.g. "NO DATA"), then restore it.

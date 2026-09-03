@@ -102,6 +102,14 @@ html, body {
 .hud-value .unit { font-size: 13px; color: var(--muted); font-weight: 400; }
 .hud-small { font-size: 15px; line-height: 1.45; }
 
+#nowcast canvas { width: 100%; height: 34px; display: block; margin: 2px 0; }
+.wk-attrib {
+  font-size: 9px;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0.8;
+}
+
 /* ---- alert banner ---- */
 #banner {
   position: absolute;

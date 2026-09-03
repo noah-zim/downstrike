@@ -1,0 +1,15 @@
+name: keep-alive
+# Pings the Downstrike storm-watch health endpoint so the Supabase free-tier
+# project never pauses for inactivity, and so a dead watcher shows up as a
+# failing workflow.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping storm-watch
+        run: curl -sf "https://uezzcowcehpgiaqmsvzo.supabase.co/functions/v1/storm-watch?ping=1"

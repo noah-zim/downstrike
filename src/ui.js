@@ -45,15 +45,28 @@ export function updateReadouts({ closest, rate, wind }) {
   if (closest) {
     $('closest').innerHTML =
       `${closest.dist.toFixed(1)} <span class="unit">km ${compass(closest.bearing)}</span>`;
+    $('s-closest').textContent = `${closest.dist.toFixed(1)} km ${compass(closest.bearing)}`;
   } else {
     $('closest').textContent = '—';
+    $('s-closest').textContent = '—';
   }
   $('rate').textContent = String(rate);
+  $('s-rate').textContent = `${rate}/min`;
   if (wind) {
     $('wind').innerHTML =
       `${Math.round(wind.speed)} <span class="unit">km/h ${wind.dirText}</span><br>` +
       `<span class="unit">gusts ${Math.round(wind.gusts)} km/h</span>`;
+    $('s-wind').textContent = `${Math.round(wind.speed)} km/h`;
   }
+}
+
+let toastTimer = null;
+export function showToast(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 2600);
 }
 
 export function updateAlertsButton(state) {
@@ -61,11 +74,18 @@ export function updateAlertsButton(state) {
   btn.classList.remove('hidden');
   btn.classList.toggle('on', state === 'on');
   if (state === 'denied') {
-    btn.textContent = 'ALERTS OFF · see Settings';
-    setTimeout(() => { btn.textContent = 'ALERTS'; }, 4000);
-  } else {
-    btn.textContent = 'ALERTS';
+    showToast('Notifications are off — enable them in iOS Settings.');
+  } else if (state === 'error') {
+    showToast("Couldn't set up alerts — try again.");
   }
+}
+
+function setStripRain(text) {
+  const show = !!text;
+  $('s-rain-sep').classList.toggle('hidden', !show);
+  $('s-rain-ico').classList.toggle('hidden', !show);
+  $('s-rain').classList.toggle('hidden', !show);
+  if (show) $('s-rain').textContent = text;
 }
 
 // Minute-by-minute rain for the next hour (from the iOS shell's WeatherKit).
@@ -91,9 +111,16 @@ export function updateNowcast(data) {
     ctx.fillRect(i * w, canvas.height - h, w - 1, h);
   }
   const text = $('nowcast-text');
-  if (firstRain === 0) text.textContent = 'Raining now';
-  else if (firstRain > 0) text.textContent = `Rain in ~${firstRain} min`;
-  else text.textContent = 'No rain next hour';
+  if (firstRain === 0) {
+    text.textContent = 'Raining now';
+    setStripRain('now');
+  } else if (firstRain > 0) {
+    text.textContent = `Rain in ~${firstRain} min`;
+    setStripRain(`${firstRain} min`);
+  } else {
+    text.textContent = 'No rain next hour';
+    setStripRain(null);
+  }
 }
 
 let bannerTimer = null;
@@ -133,15 +160,26 @@ export function wireControls(settings, handlers) {
   if (handlers.onAlertsToggle) {
     $('btn-alerts').onclick = () => handlers.onAlertsToggle();
   }
-}
 
-// Briefly swap a button's label (e.g. "NO DATA"), then restore it.
-export function flashButton(id, text) {
-  const el = $(id);
-  const orig = el.dataset.origLabel || el.textContent;
-  el.dataset.origLabel = orig;
-  el.textContent = text;
-  setTimeout(() => { el.textContent = orig; }, 1800);
+  // strip tap: expand/collapse the detail cards (remembered per browser)
+  const setHud = (open) => {
+    $('hud').classList.toggle('hidden', !open);
+    $('strip').classList.toggle('open', open);
+    try { localStorage.setItem('downstrike.hudOpen', open ? '1' : '0'); } catch (e) {}
+  };
+  $('strip').onclick = () => setHud($('hud').classList.contains('hidden'));
+  let hudOpen = false;
+  try { hudOpen = localStorage.getItem('downstrike.hudOpen') === '1'; } catch (e) {}
+  setHud(hudOpen);
+
+  // settings sheet
+  const openSheet = (open) => {
+    $('sheet').classList.toggle('hidden', !open);
+    $('sheet-scrim').classList.toggle('hidden', !open);
+  };
+  $('btn-settings').onclick = () => openSheet(true);
+  $('sheet-scrim').onclick = () => openSheet(false);
+  $('sheet-home').onclick = () => { openSheet(false); openSetup(handlers.onHome); };
 }
 
 export function openSetup(onPick) {

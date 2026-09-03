@@ -59,7 +59,9 @@ async function boot() {
     zoom: store.home ? 8.4 : 3.6,
     attributionControl: { compact: true },
   });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  if (window.innerWidth > 700) { // phones pinch-zoom; the widget collides with the icon row
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  }
   new ResizeObserver(() => map.resize()).observe(document.getElementById('map'));
   window._map = map; // debug handle
   map.on('error', (e) => console.error('map error:', e.error && e.error.message));
@@ -179,7 +181,7 @@ async function boot() {
   let stormIdx = 0;
   const onStorm = () => {
     const storms = findLiveStorms(store.strikes);
-    if (!storms.length) { ui.flashButton('btn-storm', 'NO DATA YET'); return; }
+    if (!storms.length) { ui.showToast('No storm data yet — give it a minute'); return; }
     const c = map.getCenter();
     for (let k = 0; k < storms.length; k++) {
       const cand = storms[stormIdx % storms.length];
@@ -191,7 +193,7 @@ async function boot() {
         return;
       }
     }
-    ui.flashButton('btn-storm', 'STORM IS HERE'); // the only active storm is on screen
+    ui.showToast('The storm is already on your screen'); // no other active storm on Earth
   };
 
   // ---- push storm alerts + WeatherKit nowcast (iOS app only) ----
@@ -207,6 +209,7 @@ async function boot() {
     onWind: (on) => particles.setEnabled(on),
     onSound: (on) => { if (on) { armAudio(); thunder(6); } }, // preview incl. the close boom
     onHomeClick,
+    onHome,
     onStorm,
     onAlertsToggle: isApp ? () => setAlerts(!alertsOn) : null,
   });

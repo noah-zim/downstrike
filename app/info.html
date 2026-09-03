@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Downstrike · How it works</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="stylesheet" href="styles.css">
+<style>
+  html, body { overflow: auto; }
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 40px 22px 80px;
+  }
+  .page-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .page h1 { color: var(--amber); letter-spacing: 3px; font-size: 26px; margin: 0; }
+  .back {
+    color: var(--amber);
+    text-decoration: none;
+    font-size: 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    background: var(--panel);
+  }
+  .back:hover { border-color: var(--amber); }
+  .tagline { color: var(--muted); margin: 6px 0 30px; font-size: 15px; }
+  .page h2 {
+    color: var(--text);
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 38px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .page h2 .em { color: var(--amber); }
+  .page p, .page li { color: #c3c9d4; font-size: 14.5px; line-height: 1.65; }
+  .page li { margin-bottom: 8px; }
+  .page strong { color: var(--text); }
+  .page a { color: var(--amber); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 4px 18px;
+    margin: 14px 0;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: #c3c9d4;
+    vertical-align: top;
+  }
+  th { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
+  .swatches { display: flex; gap: 6px; align-items: center; margin: 10px 0 4px; flex-wrap: wrap; }
+  .sw { width: 34px; height: 14px; border-radius: 3px; }
+  .swl { font-size: 11px; color: var(--muted); margin-right: 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>⚡ DOWNSTRIKE</h1>
+    <a class="back" href="index.html">← Back to the map</a>
+  </div>
+  <p class="tagline"><em>Downstrike</em> — the weather word for a lightning bolt that hits the
+  ground. A live lightning map centered on your home. No accounts, no sign-ups: everything runs
+  in your browser, using free public data.</p>
+
+  <h2><span class="em">01</span> · How the lightning is tracked</h2>
+  <p>Strikes come from <a href="https://www.blitzortung.org/en/live_lightning_maps.php" target="_blank" rel="noopener">Blitzortung.org</a>,
+  a worldwide network of radio receivers run by volunteers. Nobody points a camera at the sky —
+  the network <em>hears</em> every bolt and finds it with a stopwatch:</p>
+  <ul>
+    <li><strong>A lightning bolt is a radio transmitter.</strong> Its huge burst of electric
+    current sends out a radio pulse that travels thousands of kilometres at the speed of light.
+    (It's the crackle you hear on AM radio during a storm.)</li>
+    <li><strong>Volunteers listen at home.</strong> Each station is a small antenna kit with a
+    GPS clock accurate to a millionth of a second, which records the exact moment the pulse
+    arrives.</li>
+    <li><strong>Timing finds the bolt.</strong> Radio travels about 300 metres every
+    microsecond, so stations farther away hear the pulse a little later. Compare arrival times
+    at four or more stations and the possible locations cross at one point: the strike. It's
+    GPS in reverse — many receivers timing one flash to find it.</li>
+    <li><strong>Usually 20–40 stations hear each strike</strong>, pinning it to about a
+    kilometre. It reaches your screen 5–15 seconds after the real flash.</li>
+  </ul>
+  <div class="card"><p>Downstrike keeps a live connection to this feed and receives every
+  located strike on Earth — often 50+ per second. Because it's a volunteer network, a strike
+  is occasionally missed or placed a kilometre or two off. The data is free for personal use.</p></div>
+
+  <h2><span class="em">02</span> · What's on the map</h2>
+  <ul>
+    <li><strong>Strike dots.</strong> A new strike lands with a white flash, then cools like an
+    ember — the color tells you its age:
+    <div class="swatches">
+      <div class="sw" style="background:#ffffff"></div><span class="swl">now</span>
+      <div class="sw" style="background:#ffe082"></div><span class="swl">2 min</span>
+      <div class="sw" style="background:#ff9800"></div><span class="swl">8 min</span>
+      <div class="sw" style="background:#e53935"></div><span class="swl">16 min</span>
+      <div class="sw" style="background:#6e1414"></div><span class="swl">30 min, then gone</span>
+    </div>
+    So a storm paints its own trail: white at the front, embers behind.</li>
+    <li><strong>Thunder rings.</strong> Each strike sends out a ring growing at 343 m/s — the
+    real speed of sound. When a ring crosses your house, that's the exact moment you'd hear the
+    rumble.</li>
+    <li><strong>Home rings.</strong> Dashed circles at 10, 25 and 50 km show distance at a
+    glance. The amber glow on the outer ring points toward recent strikes and brightens as a
+    storm gets closer.</li>
+    <li><strong>WIND.</strong> Hundreds of particles drift with the real wind (live data,
+    refreshed every 30 minutes).</li>
+    <li><strong>RADAR.</strong> Live rain radar, refreshed every 5 minutes, off by default.
+    (The free tiles get blurry if you zoom way in.)</li>
+  </ul>
+
+  <h2><span class="em">03</span> · The thunder sound</h2>
+  <p>The thunder is generated live by code — no recordings — and shaped by the strike's real
+  distance, the same way air shapes real thunder:</p>
+  <table>
+    <tr><th>Layer</th><th>What it is</th><th>When you hear it</th></tr>
+    <tr><td><strong>Boom</strong></td><td>A deep, blunt impact with an echo</td>
+    <td>Only within ~12 km — harder the closer the strike</td></tr>
+    <tr><td><strong>Sub-bass thump</strong></td><td>A low 50 Hz punch you feel</td>
+    <td>Within ~25 km</td></tr>
+    <tr><td><strong>Rumble</strong></td><td>A rolling growl with random peaks</td>
+    <td>Always — it's all that's left of a far-away strike</td></tr>
+  </table>
+  <p>The farther the strike, the quieter it gets (about 10× softer by 50 km), the deeper it
+  sounds (air soaks up the high notes first), and the longer and slower it rolls. Flip
+  <strong>SOUND</strong> on to hear a preview — browsers need one click on the page before
+  they'll play audio.</p>
+
+  <h2><span class="em">04</span> · The controls</h2>
+  <ul>
+    <li><strong>The top strip.</strong> One line with the essentials — closest strike, strikes
+    per minute, wind, and rain. Tap it to open the full detail cards.</li>
+    <li><strong>The icon row.</strong> Bell = storm warnings (iOS app). The radar, wind and
+    sound icons toggle those layers. The house brings you back home (press it at home to
+    change your address), and the sliders icon opens Settings — that's where the alert
+    distance lives (5–50 km; any strike inside it fires the red banner and thunder at that
+    strike's real distance).</li>
+    <li><strong>The big glowing bolt is ⚡ STORM</strong> — our favorite button, so it's the
+    big one. One press flies you to the most active storm on Earth right now; press again to
+    hop to the next. Away from home, you hear what you'd hear standing at the crosshair in the
+    middle of the screen: any strike inside its dashed 50 km ring plays at its real
+    distance.</li>
+    <li><strong>ALERTS (iOS app).</strong> Turn it on and your phone gets a push notification
+    when the National Weather Service issues a severe thunderstorm or tornado warning for
+    where you are — even with the app closed. These are the official warnings, checked every
+    few minutes.</li>
+    <li><strong>Next hour rain (iOS app).</strong> A minute-by-minute strip showing when rain
+    will start and stop at your location over the coming hour, powered by
+    <a href="https://weatherkit.apple.com/legal-attribution.html" target="_blank" rel="noopener"> Weather</a>.</li>
+  </ul>
+
+  <h2><span class="em">05</span> · Privacy & sources</h2>
+  <p>Your address is looked up once and saved only in your browser. No accounts. Visits are
+  counted with GoatCounter, a privacy-friendly counter that uses no cookies and collects no
+  personal data.</p>
+  <p>One exception, and only if you turn on <strong>ALERTS</strong> in the iOS app: your
+  device's push token and your location rounded to about a kilometre are stored on our server,
+  because something has to check the warnings while your phone is asleep. Nothing else is
+  stored, and turning ALERTS off stops the checks.</p>
+  <table>
+    <tr><th>What</th><th>Source</th><th>Cost</th></tr>
+    <tr><td>Lightning strikes</td><td>Blitzortung.org community network</td><td>Free (personal use)</td></tr>
+    <tr><td>Basemap</td><td>CARTO dark-matter · OpenStreetMap</td><td>Free</td></tr>
+    <tr><td>Wind</td><td>Open-Meteo</td><td>Free</td></tr>
+    <tr><td>Rain radar</td><td>RainViewer</td><td>Free (zoom-limited)</td></tr>
+    <tr><td>Geocoding</td><td>OSM Nominatim</td><td>Free, used once</td></tr>
+    <tr><td>Visit counter</td><td>GoatCounter (no cookies)</td><td>Free</td></tr>
+    <tr><td>Storm warnings (iOS)</td><td>National Weather Service</td><td>Free</td></tr>
+    <tr><td>Rain nowcast (iOS)</td><td>Apple Weather / WeatherKit</td><td>Free</td></tr>
+  </table>
+
+  <h2><span class="em">06</span> · Credits</h2>
+  <p>Downstrike was designed and created by <strong>Leo and Noah Zimmerman</strong>, with help
+  from Claude. Strike data flows thanks to the volunteers of the Blitzortung.org network.</p>
+</div>
+<script data-goatcounter="https://downstrike.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Downstrike</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="map"></div>
+<canvas id="wind-canvas" class="overlay-canvas"></canvas>
+<canvas id="strike-canvas" class="overlay-canvas"></canvas>
+
+<header id="strip" title="Tap for details">
+  <svg width="13" height="13" viewBox="0 0 20 20" fill="#ffd54f" class="s-bolt"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
+  <span class="dot" id="conn-dot"></span>
+  <span class="s-item s-strong" id="s-closest">—</span>
+  <span class="s-sep">·</span>
+  <svg class="s-ico" viewBox="0 0 20 20"><path d="M2.5 10h3.4l1.8-4.5 3 9 1.9-4.5h4.9"/></svg>
+  <span class="s-item" id="s-rate">0</span>
+  <span class="s-sep">·</span>
+  <svg class="s-ico" viewBox="0 0 20 20"><path d="M3 7.5h8.5a2.2 2.2 0 1 0-2.2-3.4"/><path d="M3 12h11.5a2.2 2.2 0 1 1-2.2 3.4"/></svg>
+  <span class="s-item" id="s-wind">—</span>
+  <span class="s-sep hidden" id="s-rain-sep">·</span>
+  <svg class="s-ico s-rain-ico hidden" id="s-rain-ico" viewBox="0 0 20 20"><path d="M10 3.2c2.8 3.6 4.6 5.9 4.6 8.2a4.6 4.6 0 0 1-9.2 0c0-2.3 1.8-4.6 4.6-8.2z"/></svg>
+  <span class="s-item hidden" id="s-rain"></span>
+  <span class="s-flex"></span>
+  <svg class="s-ico" id="s-chevron" viewBox="0 0 20 20"><path d="M6 8.5l4 4 4-4"/></svg>
+</header>
+
+<aside id="hud">
+  <div class="hud-block">
+    <div class="hud-label">Closest strike · 60 min</div>
+    <div class="hud-value" id="closest">—</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Strikes / min · 100 km</div>
+    <div class="hud-value" id="rate">0</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Wind at home</div>
+    <div class="hud-value hud-small" id="wind">—</div>
+  </div>
+  <div class="hud-block hidden" id="nowcast">
+    <div class="hud-label">Next hour rain</div>
+    <canvas id="nowcast-chart" width="180" height="34"></canvas>
+    <div class="hud-small" id="nowcast-text"></div>
+    <a class="wk-attrib" href="https://weatherkit.apple.com/legal-attribution.html" target="_blank" rel="noopener"> Weather</a>
+  </div>
+  <div class="hud-conn"><span id="conn-text">connecting…</span></div>
+</aside>
+
+<div id="banner" class="hidden">
+  <div id="banner-text">⚡ Strike nearby</div>
+</div>
+
+<footer id="controls">
+  <button id="btn-radar" class="icon-btn" title="Rain radar">
+    <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3.2" opacity="0.6"/><path d="M10 10l4.6-4.6"/></svg>
+  </button>
+  <button id="btn-wind" class="icon-btn" title="Wind flow">
+    <svg viewBox="0 0 20 20"><path d="M3 7.5h8.5a2.2 2.2 0 1 0-2.2-3.4"/><path d="M3 12h11.5a2.2 2.2 0 1 1-2.2 3.4"/></svg>
+  </button>
+  <button id="btn-storm" class="icon-btn storm-btn" title="Fly to the most active storm on Earth right now">
+    <svg viewBox="0 0 20 20" class="storm-bolt"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
+  </button>
+  <button id="btn-home" class="icon-btn" title="Return home · change address">
+    <svg viewBox="0 0 20 20"><path d="M4 10.2l6-5.7 6 5.7V16h-4.2v-3.6H8.2V16H4v-5.8z"/></svg>
+  </button>
+  <button id="btn-settings" class="icon-btn" title="Settings">
+    <svg viewBox="0 0 20 20"><path d="M3 6h14M3 10h14M3 14h14"/><circle class="knob" cx="7" cy="6" r="1.8"/><circle class="knob" cx="13" cy="10" r="1.8"/><circle class="knob" cx="8" cy="14" r="1.8"/></svg>
+  </button>
+</footer>
+
+<div id="toast"></div>
+
+<div id="sheet-scrim"></div>
+<div id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Settings</div>
+  <div class="sheet-block">
+    <div class="sheet-row-label">
+      <span>Alert distance</span>
+      <span id="alert-km-label" class="amber">20 km</span>
+    </div>
+    <input type="range" id="alert-km" min="5" max="50" step="1" value="20">
+  </div>
+  <div class="sheet-row-toggle hidden" id="row-alerts">
+    <span>Storm warning notifications</span>
+    <button class="switch" id="sw-alerts" aria-label="Storm warning notifications"><span class="switch-knob"></span></button>
+  </div>
+  <div class="sheet-row-toggle">
+    <span>Thunder sound</span>
+    <button class="switch" id="sw-sound" aria-label="Thunder sound"><span class="switch-knob"></span></button>
+  </div>
+  <button id="sheet-home" class="sheet-row">Change home location</button>
+  <a class="sheet-row" href="info.html">How Downstrike works</a>
+</div>
+
+<div id="setup" class="modal hidden">
+  <div class="modal-card">
+    <h2>⚡ Downstrike</h2>
+    <p>Set your home location. It's geocoded once and stored only in this browser.</p>
+    <form class="search-row" id="addr-form">
+      <input id="addr" type="text" placeholder="Street, city…" autocomplete="off">
+      <button id="addr-go" type="submit">Search</button>
+    </form>
+    <button id="use-location" class="loc-btn">📍 Use my location</button>
+    <ul id="addr-results"></ul>
+    <p class="fine" id="setup-hint"></p>
+  </div>
+</div>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script type="module" src="src/main.js"></script>
+<script data-goatcounter="https://downstrike.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

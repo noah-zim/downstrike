@@ -61,6 +61,7 @@ export class LightningFeed {
 
     ws.onopen = () => {
       clearTimeout(failTimer);
+      this.failures = 0;
       this.connected = true;
       this.onStatus({ connected: true, text: `live · ${new URL(url).host}` });
       ws.send(JSON.stringify({ a: 111 }));
@@ -92,8 +93,11 @@ export class LightningFeed {
   }
 
   _failover() {
+    // exponential backoff, capped at 60s — never hammer the volunteer servers
     this.serverIdx++;
-    setTimeout(() => this._connect(), 1500);
+    this.failures = (this.failures || 0) + 1;
+    const delay = Math.min(1500 * 2 ** Math.min(this.failures - 1, 6), 60000);
+    setTimeout(() => this._connect(), delay);
   }
 
   stop() {

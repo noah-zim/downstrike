@@ -13,6 +13,8 @@ export class Radar {
     this.enabled = on;
     if (on) {
       await this._refresh();
+      clearInterval(this.timer);
+      if (!this.enabled) return; // toggled off again while the refresh was in flight
       this.timer = setInterval(() => this._refresh().catch(() => {}), 5 * 60 * 1000);
     } else {
       clearInterval(this.timer);
@@ -29,11 +31,11 @@ export class Radar {
     const frames = j.radar && j.radar.past;
     if (!frames || !frames.length) return;
     const latest = frames[frames.length - 1];
+    if (!this.enabled) return; // don't record state for a layer we won't add
     if (latest.path === this.currentPath) return;
     this.currentPath = latest.path;
     const tiles = `${j.host}${latest.path}/512/{z}/{x}/{y}/2/1_1.png`;
     this._removeLayer();
-    if (!this.enabled) return;
     this.map.addSource('rainviewer', {
       type: 'raster',
       tiles: [tiles],

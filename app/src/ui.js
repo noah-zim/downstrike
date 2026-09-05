@@ -21,7 +21,7 @@ export function loadSettings() {
 }
 
 export function saveSettings(s) {
-  localStorage.setItem('downstrike.settings', JSON.stringify(s));
+  try { localStorage.setItem('downstrike.settings', JSON.stringify(s)); } catch (e) {}
 }
 
 export function loadHome() {
@@ -33,7 +33,7 @@ export function loadHome() {
 }
 
 export function saveHome(h) {
-  localStorage.setItem('downstrike.home', JSON.stringify(h));
+  try { localStorage.setItem('downstrike.home', JSON.stringify(h)); } catch (e) {}
 }
 
 export function setConnStatus({ connected, text }) {
@@ -71,11 +71,13 @@ export function showToast(text) {
 
 export function updateAlertsButton(state) {
   $('row-alerts').classList.remove('hidden');
-  $('sw-alerts').classList.toggle('on', state === 'on');
+  $('sw-alerts').classList.toggle('on', state === 'on' || state === 'still-on');
   if (state === 'denied') {
     showToast('Notifications are off — enable them in iOS Settings.');
   } else if (state === 'error') {
-    showToast("Couldn't set up alerts — try again.");
+    showToast("Couldn't set up alerts — check your connection and try again.");
+  } else if (state === 'still-on') {
+    showToast("Couldn't turn alerts off — check your connection and try again.");
   }
 }
 
@@ -184,6 +186,18 @@ export function wireControls(settings, handlers) {
 export function openSetup(onPick) {
   const modal = $('setup');
   modal.classList.remove('hidden');
+
+  // cancellable whenever a home already exists (first run stays blocking)
+  const cancel = $('setup-cancel');
+  const canCancel = !!loadHome();
+  cancel.classList.toggle('hidden', !canCancel);
+  const close = () => {
+    modal.classList.add('hidden');
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = (e) => { if (e.key === 'Escape' && canCancel) close(); };
+  cancel.onclick = close;
+  document.addEventListener('keydown', onKey);
   const input = $('addr');
   const results = $('addr-results');
   const hint = $('setup-hint');
@@ -198,8 +212,8 @@ export function openSetup(onPick) {
     hint.textContent = 'Searching…';
     results.innerHTML = '';
     try {
-      const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=' +
-        encodeURIComponent(q);
+      const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5' +
+        '&email=noah.iterates%40gmail.com&q=' + encodeURIComponent(q);
       const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const list = await res.json();
       hint.textContent = list.length ? 'Pick your place:' : 'No matches — try adding a city or region.';
@@ -234,6 +248,7 @@ export function openSetup(onPick) {
       let label = 'My location';
       try {
         const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2' +
+          '&email=noah.iterates%40gmail.com' +
           `&lat=${pos.lat.toFixed(5)}&lon=${pos.lon.toFixed(5)}`,
           { headers: { 'Accept-Language': 'en' } });
         const j = await res.json();

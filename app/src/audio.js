@@ -122,7 +122,6 @@ function synthThunder(ac, dest, distKm) {
 }
 
 export function thunder(distKm) {
-  window._thunderTries = (window._thunderTries || 0) + 1; // debug: wiring check
   if (!ctx || ctx.state !== 'running') return;
   synthThunder(ctx, ctx.destination, distKm);
 }

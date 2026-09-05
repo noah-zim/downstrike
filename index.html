@@ -2,6 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+// old deep links: the app used to live at this URL; ?storm belongs to it.
+// Runs in <head> so the embed iframe below never starts loading first.
+if (new URLSearchParams(location.search).has('storm')) {
+  location.replace('app/' + location.search);
+}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Downstrike — watch lightning strike, live</title>
 <meta name="description" content="A free, live lightning map centered on your home. Real bolts appear seconds after they flash; thunder rings expand at the true speed of sound. By Leo and Noah Zimmerman.">
@@ -508,17 +515,13 @@
     Nowcast: <a href="https://weatherkit.apple.com/legal-attribution.html" rel="noopener"> Weather</a> ·
     Warnings: National Weather Service
     <div class="credit">Designed and created by Leo and Noah Zimmerman, with help from Claude ·
-    <a href="app/info.html">How Downstrike works</a></div>
+    <a href="app/info.html">How Downstrike works</a> ·
+    <a href="privacy.html">Privacy</a></div>
   </footer>
 
 </div>
 
 <script>
-// ---- old deep links: the app used to live at this URL; ?storm belongs to it ----
-if (new URLSearchParams(location.search).has('storm')) {
-  location.replace('app/' + location.search);
-}
-
 // ---- headline preview: ?h=1|2|3 lets Noah compare drafts on the real page ----
 (function () {
   const H = {
@@ -599,7 +602,6 @@ document.getElementById('shield').addEventListener('click', function () {
       }
     }
     still();
-    window.still = still;
     return;
   }
 

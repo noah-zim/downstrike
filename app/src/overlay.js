@@ -193,13 +193,16 @@ export class Overlay {
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     const pad = 60;
     let rings = 0;
+    // world-ish zooms can have tens of thousands of visible strikes — show
+    // only the fresh ones there, full 30-min history when zoomed in
+    const ageCap = this.map.getZoom() < 5 ? 10 * 60000 : FADE_MS;
 
     // oldest first so fresh strikes draw on top
     const strikes = this.store.strikes;
     for (let i = 0; i < strikes.length; i++) {
       const s = strikes[i];
       const age = now - s.t;
-      if (age > FADE_MS) continue;
+      if (age > ageCap) continue;
       const p = this._project(s.lat, s.lon);
       if (p.x < -pad || p.x > w + pad || p.y < -pad || p.y > h + pad) continue;
 

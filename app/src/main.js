@@ -35,7 +35,7 @@ const settings = ui.loadSettings();
 
 async function pickStyle() {
   try {
-    const res = await fetch(CARTO_STYLE, { method: 'HEAD' });
+    const res = await fetch(CARTO_STYLE, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
     if (res.ok) return CARTO_STYLE;
   } catch (e) {}
   return RASTER_FALLBACK;
@@ -53,6 +53,7 @@ async function boot() {
   // ?storm: embed mode for the landing page — no setup modal, start on a wide
   // world view, then fly to the most active storm on Earth once one is found.
   const embedStorm = new URLSearchParams(location.search).has('storm');
+  if (embedStorm) settings.sound = false; // never autoplay thunder in the landing embed
   const style = await pickStyle();
   const center = store.home ? [store.home.lon, store.home.lat]
     : embedStorm ? [-40, 22] : [-95, 40];
@@ -95,7 +96,7 @@ async function boot() {
         s.dist = null; s.bearing = 0;
       }
       store.strikes.push(s);
-      if (store.strikes.length > 50000) store.strikes.splice(0, 10000);
+      if (store.strikes.length > 25000) store.strikes.splice(0, 5000);
 
       if (s.dist != null && s.dist <= settings.alertKm) {
         ui.showBanner(`⚡ ${s.dist.toFixed(1)} km ${compass(s.bearing)} of home`);
@@ -135,9 +136,12 @@ async function boot() {
     let closest = null;
     let rate = 0;
     for (const s of store.strikes) {
+      if (now - s.tArr <= 60 * 1000 &&
+          (store.home ? (s.dist != null && s.dist <= 100) : true)) {
+        rate++; // no home set (embed view): show the global strike rate instead
+      }
       if (s.dist == null) continue;
       if (!closest || s.dist < closest.dist) closest = s;
-      if (now - s.tArr <= 60 * 1000 && s.dist <= 100) rate++;
     }
     ui.updateReadouts({ closest, rate, wind: store.wind });
   }, 1000);
@@ -221,7 +225,7 @@ async function boot() {
   // ---- push storm alerts + WeatherKit nowcast (iOS app only) ----
   let alertsOn = false;
   window._alertsStatus = (state) => {
-    alertsOn = state === 'on';
+    alertsOn = state === 'on' || state === 'still-on';
     ui.updateAlertsButton(state);
   };
   window._nowcast = (data) => ui.updateNowcast(data);

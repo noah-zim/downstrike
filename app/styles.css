@@ -133,10 +133,24 @@ html, body {
 
 #nowcast canvas { width: 100%; height: 34px; display: block; margin: 2px 0; }
 .wk-attrib {
-  font-size: 9px;
-  color: var(--muted);
+  font-size: 11px;
+  color: #aab2c2;
   text-decoration: none;
-  opacity: 0.8;
+}
+
+/* Persistent Apple Weather attribution on the map (iOS app — WeatherKit
+   powers the rain nowcast, so the mark must be clearly visible) */
+.wk-map-attrib {
+  position: absolute;
+  left: calc(8px + env(safe-area-inset-left, 0px));
+  bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  z-index: 9;
+  font-size: 11px;
+  color: #aab2c2;
+  text-decoration: none;
+  background: rgba(13, 16, 22, 0.6);
+  border-radius: 6px;
+  padding: 3px 8px;
 }
 
 /* ---- alert banner ---- */

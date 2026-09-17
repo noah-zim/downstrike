@@ -240,7 +240,12 @@ async function boot() {
     onAlertsToggle: isApp ? () => setAlerts(!alertsOn) : null,
   });
 
-  if (isApp) queryAlertsState(); // reveals the alerts toggle in settings
+  if (isApp) {
+    queryAlertsState(); // reveals the alerts toggle in settings
+    // WeatherKit powers the app's rain nowcast — Apple Weather attribution
+    // must be clearly visible on the main screen
+    document.getElementById('wk-map-attrib').classList.remove('hidden');
+  }
 
   if (!store.home && !embedStorm) ui.openSetup(onHome);
 }

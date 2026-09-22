@@ -80,9 +80,14 @@ async function boot() {
     if (settings.radar) radar.setEnabled(true).catch(() => {});
   });
 
-  // ---- audio needs one user gesture ----
-  const arm = () => { armAudio(); document.removeEventListener('pointerdown', arm); };
-  document.addEventListener('pointerdown', arm);
+  // ---- audio needs a user gesture, and iOS suspends the context whenever
+  // the app backgrounds or another app takes audio — re-arm on every tap and
+  // on return to foreground so thunder recovers without a restart ----
+  document.addEventListener('pointerdown', armAudio);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) armAudio();
+  });
+  window.addEventListener('pageshow', () => armAudio());
 
   // ---- lightning feed ----
   let lastBoom = 0;

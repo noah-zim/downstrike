@@ -4,13 +4,16 @@
 let ctx = null;
 
 export function armAudio() {
-  // must be called from a user gesture at least once
+  // must be called from a user gesture at least once; safe to call often —
+  // it revives a context iOS has suspended or interrupted, and replaces one
+  // the OS has closed outright
+  if (ctx && ctx.state === 'closed') ctx = null;
   if (!ctx) {
     try {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
     } catch (e) { return; }
   }
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
 }
 
 function synthThunder(ac, dest, distKm) {
@@ -122,7 +125,12 @@ function synthThunder(ac, dest, distKm) {
 }
 
 export function thunder(distKm) {
-  if (!ctx || ctx.state !== 'running') return;
+  if (!ctx) return;
+  if (ctx.state !== 'running') {
+    // heal for the next strike; this one stays silent
+    ctx.resume().catch(() => {});
+    return;
+  }
   synthThunder(ctx, ctx.destination, distKm);
 }
 

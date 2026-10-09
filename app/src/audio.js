@@ -16,8 +16,9 @@ export function armAudio() {
   if (ctx.state !== 'running') ctx.resume().catch(() => {});
 }
 
-function synthThunder(ac, dest, distKm) {
-  const t0 = ac.currentTime;
+// `when` lets an offline render (promo/capture.mjs) place claps on a timeline
+export function synthThunder(ac, dest, distKm, when = ac.currentTime) {
+  const t0 = when;
   const sr = ac.sampleRate;
   const d = Math.min(Math.max(distKm == null ? 10 : distKm, 0), 50);
   const close = 1 - d / 50; // 1 = overhead, 0 = 50 km away

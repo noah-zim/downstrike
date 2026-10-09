@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <script>
-// old deep links: the app used to live at this URL; ?storm belongs to it.
+// old deep links: the app used to live at this URL; ?storm and ?at belong to it.
 // Runs in <head> so the embed iframe below never starts loading first.
-if (new URLSearchParams(location.search).has('storm')) {
+var q = new URLSearchParams(location.search);
+if (q.has('storm') || q.has('at')) {
   location.replace('app/' + location.search);
 }
 </script>

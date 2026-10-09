@@ -478,3 +478,10 @@ input[type="range"] {
   font-size: 10px;
 }
 .maplibregl-ctrl-attrib a { color: var(--muted) !important; }
+
+/* ?broadcast (promo clip renderer): map and strikes only. promo/ draws its own
+   frame, including the CARTO / OpenStreetMap / Blitzortung credits. */
+body.broadcast #strip, body.broadcast #hud, body.broadcast #controls,
+body.broadcast #toast, body.broadcast #banner, body.broadcast #sheet,
+body.broadcast #sheet-scrim, body.broadcast #wk-map-attrib,
+body.broadcast .maplibregl-control-container { display: none !important; }

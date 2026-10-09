@@ -1,0 +1,14 @@
+{
+  "name": "downstrike-promo",
+  "private": true,
+  "type": "module",
+  "description": "Films live storms on the Downstrike map and posts them to Instagram after a human says yes.",
+  "engines": { "node": ">=22.12" },
+  "scripts": {
+    "capture": "node capture.mjs --out out",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "playwright": "1.56.0"
+  }
+}

@@ -1,0 +1,32 @@
+# Records a vertical clip of live lightning on downstrike.app and publishes it
+# to the `clips` branch, where the social bot picks it up. Run on demand only.
+name: storm-clip
+on:
+  workflow_dispatch:
+    inputs:
+      lat: { description: 'Latitude (blank = most active storm on Earth)', required: false, default: '' }
+      lon: { description: 'Longitude', required: false, default: '' }
+      zoom: { description: 'Map zoom', required: false, default: '8.4' }
+      seconds: { description: 'Clip length', required: false, default: '25' }
+      name: { description: 'Output file stem, e.g. 2026-10-09-isaias', required: true }
+permissions:
+  contents: write
+concurrency: { group: storm-clip, cancel-in-progress: false }
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: npm install --no-save playwright@1.56.1 && npx playwright install --with-deps chromium && sudo apt-get install -y ffmpeg
+      - name: Record
+        run: |
+          node tools/social/record_clip.js "clip.mp4" ${{ inputs.lat && format('{0} {1} {2} {3}', inputs.lat, inputs.lon, inputs.zoom, inputs.seconds) || '' }}
+      - name: Publish to clips branch
+        run: |
+          git config user.name "downstrike-clips"; git config user.email "actions@users.noreply.github.com"
+          mkdir /tmp/out && mv clip.mp4 "/tmp/out/${{ inputs.name }}.mp4"
+          git checkout --orphan clips-tmp && git rm -rqf . && cp /tmp/out/*.mp4 . && git add *.mp4
+          git commit -qm "clip ${{ inputs.name }}" && git push -f origin HEAD:clips

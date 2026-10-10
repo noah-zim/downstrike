@@ -2,6 +2,9 @@
 # to the `clips` branch, where the social bot picks it up. Run on demand only.
 name: storm-clip
 on:
+  # PRs that change the recorder record a test clip, so changes are checked before merge
+  pull_request:
+    paths: ['.github/workflows/storm-clip.yml', 'tools/social/**']
   workflow_dispatch:
     inputs:
       lat: { description: 'Latitude (blank = most active storm on Earth)', required: false, default: '' }
@@ -27,6 +30,6 @@ jobs:
       - name: Publish to clips branch
         run: |
           git config user.name "downstrike-clips"; git config user.email "actions@users.noreply.github.com"
-          mkdir /tmp/out && mv clip.mp4 "/tmp/out/${{ inputs.name }}.mp4"
+          mkdir /tmp/out && mv clip.mp4 "/tmp/out/${{ inputs.name || 'pr-test' }}.mp4"
           git checkout --orphan clips-tmp && git rm -rqf . && cp /tmp/out/*.mp4 . && git add *.mp4
-          git commit -qm "clip ${{ inputs.name }}" && git push -f origin HEAD:clips
+          git commit -qm "clip ${{ inputs.name || 'pr-test' }}" && git push -f origin HEAD:clips

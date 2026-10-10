@@ -1,5 +1,5 @@
-// Render tools/social/share-card.html to assets/share-card.png (1200×630 link preview).
-// usage: node tools/social/render_share_card.js
+// Render tools/share-card/share-card.html to assets/share-card.png (1200×630 link preview).
+// usage: node tools/share-card/render.js
 const { chromium } = require('playwright');
 const path = require('path');
 (async () => {

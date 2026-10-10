@@ -39,11 +39,11 @@ jobs:
       - name: Keep PR test clip as a run artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
-        with: { name: pr-test-clip, path: clip.mp4, retention-days: 3 }
+        with: { name: pr-test-clip, path: "clip.*", retention-days: 3 }
       - name: Publish to clips branch
         if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "downstrike-clips"; git config user.email "actions@users.noreply.github.com"
-          mkdir /tmp/out && mv clip.mp4 "/tmp/out/${{ inputs.name }}.mp4"
-          git checkout --orphan clips-tmp && git rm -rqf . && cp /tmp/out/*.mp4 . && git add *.mp4
+          mkdir /tmp/out && mv clip.mp4 "/tmp/out/${{ inputs.name }}.mp4" && mv clip.json "/tmp/out/${{ inputs.name }}.json"
+          git checkout --orphan clips-tmp && git rm -rqf . && cp /tmp/out/* . && git add *.mp4 *.json
           git commit -qm "clip ${{ inputs.name }}" && git push -f origin HEAD:clips

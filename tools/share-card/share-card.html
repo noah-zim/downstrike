@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!-- Source for assets/share-card.png (the Open Graph / Twitter link preview).
+     Regenerate: node tools/share-card/render.js
+     The strike field is a seeded illustration, not live data. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #0a0c10; }
+  body { position: relative; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; color: #e8eaf0; }
+  canvas { position: absolute; inset: 0; }
+  .copy { position: absolute; left: 72px; top: 0; bottom: 0; width: 560px; display: flex; flex-direction: column; justify-content: center; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 34px; }
+  .brand svg { width: 34px; height: 34px; filter: drop-shadow(0 0 10px rgba(255,213,79,0.55)); }
+  .brand span { font-size: 26px; font-weight: 700; letter-spacing: 5px; color: #ffd54f; }
+  h1 { margin: 0 0 22px; font-size: 68px; line-height: 1.02; font-weight: 800; letter-spacing: -1.5px; }
+  h1 .em { color: #ffd54f; text-shadow: 0 0 28px rgba(255,213,79,0.35); }
+  p { margin: 0; font-size: 27px; line-height: 1.4; color: #8a93a5; max-width: 25ch; }
+  .url { position: absolute; left: 72px; bottom: 46px; font-size: 22px; letter-spacing: 1px; color: #e8eaf0; opacity: 0.85; }
+</style>
+</head>
+<body>
+<canvas id="c" width="2400" height="1260" style="width:1200px;height:630px"></canvas>
+<div class="copy">
+  <div class="brand">
+    <svg viewBox="0 0 20 20" fill="#ffd54f"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
+    <span>DOWNSTRIKE</span>
+  </div>
+  <h1>Watch lightning <span class="em">strike</span>. Live.</h1>
+  <p>Every bolt on Earth, seconds after it flashes.</p>
+</div>
+<div class="url">downstrike.app</div>
+<script>
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+g.scale(2, 2);
+let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+const gauss = () => { let u = 0; for (let i = 0; i < 4; i++) u += rnd(); return (u - 2) / 0.58; };
+
+// home and distance rings (10 / 25 / 50 km), like the app
+const H = { x: 965, y: 300 }, KM = 5.0;
+const bg = g.createRadialGradient(H.x, H.y, 0, H.x, H.y, 520);
+bg.addColorStop(0, 'rgba(255,213,79,0.05)'); bg.addColorStop(1, 'rgba(10,12,16,0)');
+g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+
+g.setLineDash([5, 7]); g.lineWidth = 1.2;
+for (const km of [10, 25, 50]) {
+  g.strokeStyle = 'rgba(255,213,79,0.22)';
+  g.beginPath(); g.arc(H.x, H.y, km * KM, 0, Math.PI * 2); g.stroke();
+}
+g.setLineDash([]);
+
+// storm cell approaching from the west-southwest
+const C = { x: 800, y: 395 }, dir = Math.atan2(H.y - C.y, H.x - C.x);
+// approach glow on the 50 km ring
+const glow = Math.atan2(C.y - H.y, C.x - H.x);
+for (let w = 14; w > 0; w -= 2) {
+  g.strokeStyle = `rgba(255,171,0,${0.05 + (14 - w) * 0.012})`; g.lineWidth = w;
+  g.beginPath(); g.arc(H.x, H.y, 50 * KM, glow - 0.42, glow + 0.42); g.stroke();
+}
+
+// strikes: front (young, white) leads toward home; tail (old, ember) trails behind
+const ageColor = (a) => {
+  const stops = [[0, [255, 255, 255]], [0.15, [255, 236, 160]], [0.35, [255, 213, 79]], [0.6, [255, 140, 30]], [1, [150, 30, 20]]];
+  for (let i = 1; i < stops.length; i++) if (a <= stops[i][0]) {
+    const [a0, c0] = stops[i - 1], [a1, c1] = stops[i], t = (a - a0) / (a1 - a0);
+    return c0.map((v, k) => Math.round(v + (c1[k] - v) * t));
+  }
+  return stops[stops.length - 1][1];
+};
+const strikes = [];
+for (let i = 0; i < 190; i++) {
+  const along = gauss() * 60, across = gauss() * 36;
+  const x = C.x + Math.cos(dir) * along - Math.sin(dir) * across;
+  const y = C.y + Math.sin(dir) * along + Math.cos(dir) * across;
+  const age = Math.min(1, Math.max(0, 0.58 - along / 120 + gauss() * 0.12));
+  strikes.push({ x, y, age });
+}
+strikes.sort((a, b) => b.age - a.age);
+
+// thunder rings from the freshest strikes
+for (const st of strikes.slice(-2)) {
+  for (const [r, a] of [[30, 0.3], [64, 0.15]]) {
+    g.strokeStyle = `rgba(180,210,255,${a})`; g.lineWidth = 1.4;
+    g.beginPath(); g.arc(st.x, st.y, r + rnd() * 30, 0, Math.PI * 2); g.stroke();
+  }
+}
+for (const st of strikes) {
+  const [r, gg, b] = ageColor(st.age), rad = 2.2 + (1 - st.age) * 2.2;
+  if (st.age < 0.12) {
+    const h = g.createRadialGradient(st.x, st.y, 0, st.x, st.y, rad * 5);
+    h.addColorStop(0, `rgba(${r},${gg},${b},0.45)`); h.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+    g.fillStyle = h; g.beginPath(); g.arc(st.x, st.y, rad * 5, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = `rgba(${r},${gg},${b},${0.95 - st.age * 0.35})`;
+  g.beginPath(); g.arc(st.x, st.y, rad, 0, Math.PI * 2); g.fill();
+}
+
+// home marker
+g.fillStyle = 'rgba(110,168,254,0.25)'; g.beginPath(); g.arc(H.x, H.y, 13, 0, Math.PI * 2); g.fill();
+g.fillStyle = '#e8eaf0'; g.beginPath(); g.arc(H.x, H.y, 5.5, 0, Math.PI * 2); g.fill();
+
+// fade the field under the copy so the text stays crisp
+const fade = g.createLinearGradient(0, 0, 760, 0);
+fade.addColorStop(0, 'rgba(10,12,16,0.97)'); fade.addColorStop(0.6, 'rgba(10,12,16,0.8)'); fade.addColorStop(1, 'rgba(10,12,16,0)');
+g.fillStyle = fade; g.fillRect(0, 0, 760, 630);
+</script>
+</body>
+</html>

@@ -30,7 +30,7 @@ const fs = require('fs'), path = require('path'), os = require('os');
   // keep only the last <secs> seconds; burn the credit line in-frame
   const credit = 'Lightning\\: Blitzortung.org (CC BY-SA) · downstrike.app';
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-sseof', `-${secs}`, '-i', raw,
-    '-vf', `scale=1080:1920:flags=lanczos,drawtext=text='${credit}':fontcolor=white:fontsize=30:box=1:boxcolor=black@0.45:boxborderw=12:x=(w-text_w)/2:y=h-110`,
+    '-vf', `scale=1080:1920:flags=lanczos,drawtext=text='${credit}':fontcolor=white:fontsize=30:box=1:boxcolor=black@0.45:boxborderw=12:x=(w-text_w)/2:y=150`,
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', '30', '-movflags', '+faststart', out]);
   console.log(JSON.stringify({ out, seconds: +secs }));
 })().catch((e) => { console.error(e); process.exit(1); });

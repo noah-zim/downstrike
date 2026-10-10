@@ -4,7 +4,7 @@ name: storm-clip
 on:
   # PRs that change the recorder record a test clip, so changes are checked before merge
   pull_request:
-    paths: ['.github/workflows/storm-clip.yml', 'tools/social/**']
+    paths: ['.github/workflows/storm-clip.yml', 'tools/social/record_clip.js']
   workflow_dispatch:
     inputs:
       lat: { description: 'Latitude (blank = most active storm on Earth)', required: false, default: '' }
@@ -14,7 +14,7 @@ on:
       name: { description: 'Output file stem, e.g. 2026-10-09-isaias', required: true }
 permissions:
   contents: write
-concurrency: { group: storm-clip, cancel-in-progress: false }
+concurrency: { group: "storm-clip-${{ github.event_name }}", cancel-in-progress: false }
 jobs:
   record:
     runs-on: ubuntu-latest
@@ -23,13 +23,27 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
-      - run: npm install --no-save playwright@1.56.1 && npx playwright install --with-deps chromium && sudo apt-get install -y ffmpeg
+      # an apt mirror occasionally hangs; bound each attempt and retry once
+      - name: Install Chromium and ffmpeg
+        timeout-minutes: 8
+        run: |
+          npm install --no-save playwright@1.56.1
+          for i in 1 2; do
+            timeout 180 bash -c 'npx playwright install --with-deps chromium && sudo apt-get install -y ffmpeg' && break
+            [ "$i" = 2 ] && exit 1
+          done
       - name: Record
         run: |
           node tools/social/record_clip.js "clip.mp4" ${{ inputs.lat && format('{0} {1} {2} {3}', inputs.lat, inputs.lon, inputs.zoom, inputs.seconds) || '' }}
+      # PR runs only check that recording works; they never touch the clips branch
+      - name: Keep PR test clip as a run artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with: { name: pr-test-clip, path: clip.mp4, retention-days: 3 }
       - name: Publish to clips branch
+        if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "downstrike-clips"; git config user.email "actions@users.noreply.github.com"
-          mkdir /tmp/out && mv clip.mp4 "/tmp/out/${{ inputs.name || 'pr-test' }}.mp4"
+          mkdir /tmp/out && mv clip.mp4 "/tmp/out/${{ inputs.name }}.mp4"
           git checkout --orphan clips-tmp && git rm -rqf . && cp /tmp/out/*.mp4 . && git add *.mp4
-          git commit -qm "clip ${{ inputs.name || 'pr-test' }}" && git push -f origin HEAD:clips
+          git commit -qm "clip ${{ inputs.name }}" && git push -f origin HEAD:clips

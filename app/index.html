@@ -84,6 +84,9 @@
   <button id="btn-storm" class="icon-btn storm-btn" title="Fly to the most active storm on Earth right now">
     <svg viewBox="0 0 20 20" class="storm-bolt"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
   </button>
+  <button id="btn-share" class="icon-btn" title="Share this storm" aria-label="Share this storm">
+    <svg viewBox="0 0 20 20"><path d="M10 12V2.8"/><path d="M6.7 6L10 2.7 13.3 6"/><path d="M7 8.6H5.6a1.1 1.1 0 0 0-1.1 1.1v6.6a1.1 1.1 0 0 0 1.1 1.1h8.8a1.1 1.1 0 0 0 1.1-1.1V9.7a1.1 1.1 0 0 0-1.1-1.1H13"/></svg>
+  </button>
   <button id="btn-home" class="icon-btn" title="Return home · change address">
     <svg viewBox="0 0 20 20"><path d="M4 10.2l6-5.7 6 5.7V16h-4.2v-3.6H8.2V16H4v-5.8z"/></svg>
   </button>
@@ -118,6 +121,21 @@
   <button id="sheet-home" class="sheet-row">Change home location</button>
   <a class="sheet-row" href="info.html">How Downstrike works</a>
 </div>
+
+<div id="share-scrim"></div>
+<div id="share-sheet" role="dialog" aria-label="Share this storm">
+  <div class="sheet-handle"></div>
+  <div class="share-head">
+    <div class="sheet-title">Share this storm</div>
+    <button id="share-close" class="share-x" aria-label="Close">✕</button>
+  </div>
+  <div id="share-preview" class="share-preview"></div>
+  <button id="share-go" class="share-primary" disabled>Share picture</button>
+  <button id="share-clip" class="share-secondary hidden">Record a 15 s clip</button>
+  <button id="share-copy" class="sheet-row share-link">Copy link to this view</button>
+</div>
+
+<button id="rec-pill" class="hidden" aria-label="Stop recording"><span class="rec-dot"></span>REC <span id="rec-time">0:15</span><span class="rec-stop">Stop</span></button>
 
 <div id="setup" class="modal hidden">
   <div class="modal-card">

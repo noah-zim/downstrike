@@ -6,6 +6,7 @@ import { armAudio, thunder } from './audio.js';
 import { distKm, bearingDeg, compass, destPoint } from './geo.js';
 import { findLiveStorms } from './storm.js';
 import { isApp, setAlerts, queryAlertsState } from './native.js';
+import { createShare } from './share.js';
 import * as ui from './ui.js';
 
 const CARTO_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -285,6 +286,16 @@ async function boot() {
     onStorm,
     onAlertsToggle: isApp ? () => setAlerts(!alertsOn) : null,
   });
+
+  // ⇪ share this storm. The iOS shell's web view may lack the Web Share API,
+  // and a download goes nowhere there, so the button only shows where it works.
+  const shareBtn = document.getElementById('btn-share');
+  if (isApp && !navigator.share) {
+    shareBtn.classList.add('hidden');
+  } else {
+    const share = createShare({ map, overlay, store, settings, toast: ui.showToast });
+    shareBtn.onclick = share.open;
+  }
 
   if (isApp) {
     queryAlertsState(); // reveals the alerts toggle in settings

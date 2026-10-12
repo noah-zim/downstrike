@@ -54,11 +54,18 @@ export class Overlay {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
 
-    const home = this.store.home;
-    if (home) this._drawHomeRings(ctx, home);
-    this._drawListeningPoint(ctx, home);
-    this._drawStrikes(ctx);
+    this.draw(ctx, this.canvas.clientWidth, this.canvas.clientHeight);
     requestAnimationFrame(() => this._frame());
+  }
+
+  // Draws one frame in map CSS pixels onto any 2D context. The share export
+  // (share.js) calls this with its own transform and leaves out the home rings
+  // and the listening crosshair: a shared picture must never mark someone's home.
+  draw(ctx, w, h, { home = true, listening = true } = {}) {
+    const loc = this.store.home;
+    if (home && loc) this._drawHomeRings(ctx, loc, w, h);
+    if (listening) this._drawListeningPoint(ctx, loc, w, h);
+    this._drawStrikes(ctx, w, h);
   }
 
   _project(lat, lon) {
@@ -73,9 +80,8 @@ export class Overlay {
     return Math.hypot(p.x - c.x, p.y - c.y);
   }
 
-  _drawHomeRings(ctx, home) {
+  _drawHomeRings(ctx, home, w, h) {
     const c = this._project(home.lat, home.lon);
-    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (c.x < -w || c.x > 2 * w || c.y < -h || c.y > 2 * h) return;
 
     for (const km of [10, 25, 50]) {
@@ -150,11 +156,11 @@ export class Overlay {
   // When viewing a storm away from home, the "ears" sit at the map center:
   // a faint crosshair plus the 50 km audible ring. A thunder ring crossing
   // the crosshair is the moment its sound plays.
-  _drawListeningPoint(ctx, home) {
+  _drawListeningPoint(ctx, home, w, h) {
     const c = this.map.getCenter();
     if (home && distKm(c.lat, c.lng, home.lat, home.lon) <= 30) return;
-    const cx = this.canvas.clientWidth / 2;
-    const cy = this.canvas.clientHeight / 2;
+    const cx = w / 2;
+    const cy = h / 2;
     const pulse = 0.75 + 0.25 * Math.sin(performance.now() / 600);
 
     // audible-range ring
@@ -188,9 +194,8 @@ export class Overlay {
     ctx.fill();
   }
 
-  _drawStrikes(ctx) {
+  _drawStrikes(ctx, w, h) {
     const now = Date.now();
-    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     const pad = 60;
     let rings = 0;
     // world-ish zooms can have tens of thousands of visible strikes — show

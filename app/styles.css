@@ -260,7 +260,7 @@ html, body {
 }
 
 /* ---- settings sheet (iOS-style slide-up) ---- */
-#sheet-scrim {
+#sheet-scrim, #share-scrim {
   position: absolute;
   inset: 0;
   z-index: 40;
@@ -269,11 +269,11 @@ html, body {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
-#sheet-scrim.open {
+#sheet-scrim.open, #share-scrim.open {
   opacity: 1;
   pointer-events: auto;
 }
-#sheet {
+#sheet, #share-sheet {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   z-index: 41;
@@ -287,9 +287,86 @@ html, body {
   transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
 }
-#sheet.open {
+#sheet.open, #share-sheet.open {
   transform: none;
 }
+
+/* ---- share sheet ---- */
+.share-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.share-x {
+  background: none; border: none; color: var(--muted); font-size: 15px;
+  padding: 0 2px 8px 12px; margin-top: -4px; cursor: pointer; font-family: inherit;
+}
+.share-preview {
+  height: min(46vh, 430px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.share-preview img, .share-preview video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  background: var(--bg);
+}
+.share-wait { font-size: 13px; color: var(--muted); animation: share-breathe 1.4s ease-in-out infinite; }
+@keyframes share-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+.share-primary, .share-secondary {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  padding: 13px 0;
+  font-size: 15px;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.share-primary {
+  background: var(--amber);
+  color: #14110a;
+  border: none;
+  box-shadow: 0 0 18px rgba(255, 213, 79, 0.25);
+}
+.share-primary:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+.share-secondary {
+  background: transparent;
+  color: var(--amber);
+  border: 1px solid rgba(255, 213, 79, 0.45);
+}
+#share-sheet .share-link { text-align: center; color: var(--muted); padding: 10px 0 0; }
+
+/* recording indicator (not part of the clip: the clip is drawn separately) */
+#rec-pill {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 82, 82, 0.6);
+  color: var(--text);
+  font: 600 13px -apple-system, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.rec-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--danger);
+  animation: share-breathe 1s ease-in-out infinite;
+}
+.rec-stop { color: var(--muted); font-weight: 500; letter-spacing: 0; }
 
 /* ---- iOS-style switches ---- */
 .sheet-row-toggle {
@@ -484,4 +561,5 @@ input[type="range"] {
 body.broadcast #strip, body.broadcast #hud, body.broadcast #controls,
 body.broadcast #toast, body.broadcast #banner, body.broadcast #sheet,
 body.broadcast #sheet-scrim, body.broadcast #wk-map-attrib,
+body.broadcast #share-sheet, body.broadcast #share-scrim, body.broadcast #rec-pill,
 body.broadcast .maplibregl-control-container { display: none !important; }

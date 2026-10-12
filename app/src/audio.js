@@ -2,6 +2,7 @@
 // Close strikes: sharp broadband crack + sub-bass thump + short rumble.
 // Distant strikes: quiet, slow-swelling low rumble — highs absorbed by the air.
 let ctx = null;
+let bus = null; // while a share clip records: thunder goes to the speakers and the clip
 
 export function armAudio() {
   // must be called from a user gesture at least once; safe to call often —
@@ -132,7 +133,25 @@ export function thunder(distKm) {
     ctx.resume().catch(() => {});
     return;
   }
-  synthThunder(ctx, ctx.destination, distKm);
+  synthThunder(ctx, bus || ctx.destination, distKm);
+}
+
+// Share clips (share.js): a stream carrying the thunder as it plays, so the
+// clip sounds like the map did. Null when audio isn't running yet.
+export function startAudioTap() {
+  if (!ctx || ctx.state !== 'running') return null;
+  const tap = ctx.createMediaStreamDestination();
+  bus = ctx.createGain();
+  bus.connect(ctx.destination);
+  bus.connect(tap);
+  return tap.stream;
+}
+
+export function stopAudioTap() {
+  if (!bus) return;
+  const old = bus;
+  bus = null;
+  setTimeout(() => old.disconnect(), 8000); // let claps already playing ring out
 }
 
 // Offline-render a thunder clap and report levels — used for testing only.

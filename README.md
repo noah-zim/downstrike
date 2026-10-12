@@ -39,6 +39,11 @@ stored only in your browser's localStorage. Click the ⌂ button any time to cha
   global feed, gridded into 1° cells), at home-view zoom so the rings read properly.
   Press again to cycle through the top storms; the one on screen is always skipped.
   ⌂ returns home (and opens address settings when you're already home).
+- **⇪ SHARE** — exports the view as a branded picture (or a 15 s vertical MP4 clip, with
+  the thunder, where the browser can record H.264) and opens the system share sheet;
+  browsers without one download the file and copy the link. The frame carries the
+  downstrike.app mark and the Blitzortung / CARTO / OSM credits, and never draws the home
+  rings. The link reopens the same view (`?at=`) tagged `utm_source=share`.
 - **ⓘ** — opens [info.html](info.html), a full explainer of the data sources, the
   visualization mechanics, and the thunder synthesis.
 

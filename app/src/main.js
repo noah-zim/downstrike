@@ -41,6 +41,15 @@ async function pickStyle() {
   return RASTER_FALLBACK;
 }
 
+// ?at=lat,lon[,zoom] — open the map on a spot (shareable storm links; the
+// promo clip renderer). Home is untouched; ⌂ still flies back to it.
+function parseAt(v) {
+  if (!v) return null;
+  const [lat, lon, zoom] = v.split(',').map(Number);
+  if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180)) return null;
+  return { lat, lon, zoom: zoom >= 1 && zoom <= 16 ? zoom : 8.4 };
+}
+
 function homeView(home) {
   const n = destPoint(home.lat, home.lon, 0, 55);
   const s = destPoint(home.lat, home.lon, 180, 55);
@@ -52,16 +61,24 @@ function homeView(home) {
 async function boot() {
   // ?storm: embed mode for the landing page — no setup modal, start on a wide
   // world view, then fly to the most active storm on Earth once one is found.
-  const embedStorm = new URLSearchParams(location.search).has('storm');
-  if (embedStorm) settings.sound = false; // never autoplay thunder in the landing embed
+  const params = new URLSearchParams(location.search);
+  const embedStorm = params.has('storm');
+  const at = parseAt(params.get('at'));
+  // ?broadcast: the headless clip renderer in promo/ (never linked). Chrome
+  // hidden, silent, and strikes replayed on a fixed delay so a stepped clock
+  // can film them in order.
+  const broadcast = params.has('broadcast');
+  if (embedStorm || broadcast) settings.sound = false; // never autoplay thunder in embeds
+  if (broadcast) document.body.classList.add('broadcast');
   const style = await pickStyle();
-  const center = store.home ? [store.home.lon, store.home.lat]
+  const center = at ? [at.lon, at.lat]
+    : store.home ? [store.home.lon, store.home.lat]
     : embedStorm ? [-40, 22] : [-95, 40];
   const map = new maplibregl.Map({
     container: 'map',
     style,
     center,
-    zoom: store.home ? 8.4 : embedStorm ? 1.7 : 3.6,
+    zoom: at ? at.zoom : store.home ? 8.4 : embedStorm ? 1.7 : 3.6,
     attributionControl: { compact: true },
   });
   if (window.innerWidth > 700) { // phones pinch-zoom; the widget collides with the icon row
@@ -70,11 +87,12 @@ async function boot() {
   new ResizeObserver(() => map.resize()).observe(document.getElementById('map'));
   window._map = map; // debug handle
   map.on('error', (e) => console.error('map error:', e.error && e.error.message));
-  if (store.home) map.fitBounds(homeView(store.home), { animate: false, padding: 20 });
+  if (store.home && !at) map.fitBounds(homeView(store.home), { animate: false, padding: 20 });
 
   const overlay = new Overlay(document.getElementById('strike-canvas'), map, store);
   const particles = new WindParticles(document.getElementById('wind-canvas'), map);
   particles.setEnabled(settings.wind);
+  if (at) fetchWindField(at).then((f) => particles.setField(f)).catch(() => {});
   const radar = new Radar(map);
   map.on('load', () => {
     if (settings.radar) radar.setEnabled(true).catch(() => {});
@@ -91,39 +109,62 @@ async function boot() {
 
   // ---- lightning feed ----
   let lastBoom = 0;
+  const maxStrikes = broadcast ? 400000 : 25000; // the renderer holds the whole globe
+  const ingest = (s) => {
+    if (store.home) {
+      s.dist = distKm(store.home.lat, store.home.lon, s.lat, s.lon);
+      s.bearing = bearingDeg(store.home.lat, store.home.lon, s.lat, s.lon);
+    } else {
+      s.dist = null; s.bearing = 0;
+    }
+    store.strikes.push(s);
+    if (store.strikes.length > maxStrikes) store.strikes.splice(0, maxStrikes / 5);
+
+    if (s.dist != null && s.dist <= settings.alertKm) {
+      ui.showBanner(`⚡ ${s.dist.toFixed(1)} km ${compass(s.bearing)} of home`);
+      if (settings.sound && Date.now() - lastBoom > 8000) {
+        lastBoom = Date.now();
+        thunder(s.dist);
+      }
+    } else if (settings.sound && Date.now() - lastBoom > 8000) {
+      // spectator thunder: when viewing a storm away from home (or with no
+      // home set), strikes near the map center are audible too
+      const c = map.getCenter();
+      const away = !store.home ||
+        distKm(c.lat, c.lng, store.home.lat, store.home.lon) > 30;
+      if (away) {
+        const dc = distKm(c.lat, c.lng, s.lat, s.lon);
+        if (dc <= 50) { // audible range: close = crack, far = faint rumble
+          lastBoom = Date.now();
+          thunder(dc);
+        }
+      }
+    }
+  };
+
+  // broadcast: hold each strike until a fixed delay after it flashed. Playback
+  // then stays in strike order even while the renderer's clock is paused and
+  // live strikes keep arriving in real time.
+  const delayMs = Math.max(0, Number(params.get('delay')) || 12000); // ~feed latency
+  const queue = [];
+  const enqueue = (s) => {
+    s.tArr = Math.max(s.tArr, s.t + delayMs);
+    let i = queue.length;
+    while (i > 0 && queue[i - 1].tArr > s.tArr) i--;
+    queue.splice(i, 0, s);
+  };
+  if (broadcast) {
+    setInterval(() => {
+      const now = Date.now();
+      let n = 0;
+      while (n < queue.length && queue[n].tArr <= now) n++;
+      if (n) for (const s of queue.splice(0, n)) ingest(s);
+    }, 16);
+  }
+
   const feed = new LightningFeed({
     onStatus: ui.setConnStatus,
-    onStrike: (s) => {
-      if (store.home) {
-        s.dist = distKm(store.home.lat, store.home.lon, s.lat, s.lon);
-        s.bearing = bearingDeg(store.home.lat, store.home.lon, s.lat, s.lon);
-      } else {
-        s.dist = null; s.bearing = 0;
-      }
-      store.strikes.push(s);
-      if (store.strikes.length > 25000) store.strikes.splice(0, 5000);
-
-      if (s.dist != null && s.dist <= settings.alertKm) {
-        ui.showBanner(`⚡ ${s.dist.toFixed(1)} km ${compass(s.bearing)} of home`);
-        if (settings.sound && Date.now() - lastBoom > 8000) {
-          lastBoom = Date.now();
-          thunder(s.dist);
-        }
-      } else if (settings.sound && Date.now() - lastBoom > 8000) {
-        // spectator thunder: when viewing a storm away from home (or with no
-        // home set), strikes near the map center are audible too
-        const c = map.getCenter();
-        const away = !store.home ||
-          distKm(c.lat, c.lng, store.home.lat, store.home.lon) > 30;
-        if (away) {
-          const dc = distKm(c.lat, c.lng, s.lat, s.lon);
-          if (dc <= 50) { // audible range: close = crack, far = faint rumble
-            lastBoom = Date.now();
-            thunder(dc);
-          }
-        }
-      }
-    },
+    onStrike: broadcast ? enqueue : ingest,
   });
   feed.start();
 
@@ -252,7 +293,16 @@ async function boot() {
     document.getElementById('wk-map-attrib').classList.remove('hidden');
   }
 
-  if (!store.home && !embedStorm) ui.openSetup(onHome);
+  if (broadcast) {
+    // handle for promo/capture.mjs: it picks the storm, frames it and films it
+    window._downstrike = {
+      map, store, particles, findLiveStorms, fetchWindField,
+      pending: () => queue.length,
+      stopFeed: () => feed.stop(),
+    };
+  }
+
+  if (!store.home && !embedStorm && !at && !broadcast) ui.openSetup(onHome);
 }
 
 boot();

@@ -197,12 +197,22 @@ export class Overlay {
     // only the fresh ones there, full 30-min history when zoomed in
     const ageCap = this.map.getZoom() < 5 ? 10 * 60000 : FADE_MS;
 
+    // cheap lat/lon cull before projecting: most of the buffer is storms
+    // elsewhere on Earth. Same padded box as the pixel test below, so nothing
+    // that would have been drawn is skipped. Off when the view is rotated,
+    // tilted, or wraps the date line.
+    const nw = this.map.unproject([-pad, -pad]);
+    const se = this.map.unproject([w + pad, h + pad]);
+    const cull = this.map.getBearing() === 0 && this.map.getPitch() === 0 &&
+      nw.lng >= -180 && se.lng <= 180 && se.lng > nw.lng;
+
     // oldest first so fresh strikes draw on top
     const strikes = this.store.strikes;
     for (let i = 0; i < strikes.length; i++) {
       const s = strikes[i];
       const age = now - s.t;
       if (age > ageCap) continue;
+      if (cull && (s.lat > nw.lat || s.lat < se.lat || s.lon < nw.lng || s.lon > se.lng)) continue;
       const p = this._project(s.lat, s.lon);
       if (p.x < -pad || p.x > w + pad || p.y < -pad || p.y > h + pad) continue;
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // Runs when the repo owner comments on a promo issue (see promo-approve.yml).
-//   /post            publish the clip to Instagram
+//   /post            post the clip on X
 //   /post anyway     ...even if it is older than maxPostAgeHours
 //   /skip            delete the clip and close the issue
-//   /caption <text>  replace the caption in the issue
+//   /caption <text>  replace the post text in the issue
 // Env: ISSUE_NUMBER, COMMENT_ID, COMMENT_BODY, GH_TOKEN, GITHUB_REPOSITORY,
-//      IG_API (facebook|instagram), IG_USER_ID, IG_ACCESS_TOKEN.
+//      X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET.
 // Posting is at most once per issue: the "posting" label goes on before
-// anything is sent to Meta and only comes off if Meta never published.
+// anything is sent to X and only comes off if X never published.
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,15 +15,16 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseCommand, parseIssueBody, replaceCaption } from './issue.mjs';
-import { publishReel, resolveRedirect } from './publish.mjs';
+import { postVideo, keysFromEnv, scrubber } from './x.mjs';
+import { captionProblem } from './caption.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const cfg = JSON.parse(fs.readFileSync(path.join(HERE, 'config.json'), 'utf8'));
 const repo = process.env.GITHUB_REPOSITORY;
 const n = process.env.ISSUE_NUMBER;
 const gh = (...args) => execFileSync('gh', [...args, '--repo', repo], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }).trim();
-// anything said in the (public) issue is scrubbed of the token first
-const scrub = (text) => (process.env.IG_ACCESS_TOKEN ? String(text).split(process.env.IG_ACCESS_TOKEN).join('***') : String(text));
+// anything said in the (public) issue is scrubbed of the keys first
+const scrub = scrubber();
 const say = (text) => gh('issue', 'comment', n, '--body', scrub(text));
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'promo-'));
 
@@ -42,7 +43,7 @@ if (issue.state !== 'OPEN' || labels.includes('posted') || labels.includes('skip
   process.exit(0);
 }
 if (labels.includes('posting')) {
-  say('A post is already running for this clip, or one was interrupted. If the Reel never appeared on Instagram, remove the `posting` label and comment `/post` again.');
+  say('A post is already running for this clip, or one was interrupted. If the post never appeared on X, remove the `posting` label and comment `/post` again.');
   process.exit(0);
 }
 let meta, caption;
@@ -65,7 +66,8 @@ if (cmd.cmd === 'caption') {
   const f = path.join(tmp, 'body.md');
   fs.writeFileSync(f, replaceCaption(issue.body, cmd.text));
   gh('issue', 'edit', n, '--body-file', f);
-  say('Caption updated. Comment `/post` when it reads right.');
+  const problem = captionProblem(cmd.text);
+  say(problem ? `Post text updated, but it is ${problem}. X will refuse it; trim it with another \`/caption …\`.` : 'Post text updated. Comment `/post` when it reads right.');
   process.exit(0);
 }
 
@@ -75,37 +77,29 @@ if (ageH > cfg.maxPostAgeHours && !cmd.anyway) {
   say(`This clip is ${ageH.toFixed(1)} hours old, so "right now" is no longer true. Comment \`/post anyway\` to post it regardless, or \`/skip\`.`);
   process.exit(0);
 }
-const tags = (caption.match(/#[\p{L}\p{N}_]+/gu) || []).length;
-if (caption.length > 2200 || tags > 30) {
-  say(`Instagram allows 2,200 characters and 30 hashtags; this caption has ${caption.length} and ${tags}. Trim it with \`/caption …\`.`);
+const problem = captionProblem(caption);
+if (problem) {
+  say(`The post text is ${problem}. Fix it with \`/caption …\` (280 characters, no links or domain names).`);
   process.exit(0);
 }
 
-const mode = process.env.IG_API || 'facebook';
 try { gh('label', 'create', 'posting', '--color', 'FFAB00'); } catch (e) {}
 try { gh('label', 'create', 'posted', '--color', '2EA043'); } catch (e) {}
 gh('issue', 'edit', n, '--add-label', 'posting');
 let published = null;
 try {
   gh('release', 'download', meta.tag, '--pattern', 'clip.mp4', '--dir', tmp);
-  const videoUrl = mode === 'instagram'
-    ? await resolveRedirect(`https://github.com/${repo}/releases/download/${meta.tag}/clip.mp4`)
-    : undefined;
-  published = await publishReel({
-    file: path.join(tmp, 'clip.mp4'), caption, thumbOffsetMs: meta.thumbOffsetMs, audioName: cfg.audioName,
-    mode, userId: process.env.IG_USER_ID, token: process.env.IG_ACCESS_TOKEN,
-    version: cfg.graphVersion, videoUrl, log: console.log,
-  });
+  published = await postVideo({ file: path.join(tmp, 'clip.mp4'), text: caption, keys: keysFromEnv(), log: (m) => console.log(scrub(m)) });
   gh('issue', 'edit', n, '--remove-label', 'posting', '--add-label', 'posted');
-  gh('issue', 'close', n, '--comment', `Posted ✅ ${published.permalink || `(media ${published.mediaId})`}`);
+  gh('issue', 'close', n, '--comment', `Posted on X ✅ ${published.url || ''}`);
 } catch (e) {
   console.error(scrub(e.stack || e.message));
   if (published) { // it's live; never invite a second post
-    say(`Posted (media ${published.mediaId}), but tidying up the issue failed: ${e.message}`);
+    say(`Posted (${published.url}), but tidying up the issue failed: ${e.message}`);
     process.exit(1);
   }
-  if (e.maybePublished) { // Meta may have published before the error; leave "posting" on
-    say(`Not sure this posted: ${e.message}\n\nCheck Instagram. If the Reel isn't there, remove the \`posting\` label and comment \`/post\` again.`);
+  if (e.maybePublished) { // X may have posted before the error; leave "posting" on
+    say(`Not sure this posted: ${e.message}\n\nCheck the X account. If the post isn't there, remove the \`posting\` label and comment \`/post\` again.`);
     process.exit(1);
   }
   try { gh('issue', 'edit', n, '--remove-label', 'posting'); } catch (e2) {}

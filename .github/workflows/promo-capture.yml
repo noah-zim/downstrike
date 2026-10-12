@@ -1,7 +1,8 @@
 name: promo · film a storm
 # Every two hours: listen to the live feed, film the most newsworthy storm on
-# the real Downstrike map, and open an issue asking whether to post it.
-# Nothing reaches Instagram until the repo owner comments /post on that issue.
+# the real Downstrike map, and post it on X. It asks first (an issue the owner
+# answers with /post or /skip) when the National Weather Service has warnings
+# out there, when posting fails, or when PROMO_AUTOPOST is "false".
 # Kill switch: set the repository variable PROMO_ENABLED to "false".
 
 on:
@@ -66,11 +67,16 @@ jobs:
           mkdir -p .state
           node capture.mjs --out out ${AT:+--at "$AT"} $([ "$FORCE" = "true" ] && echo --force)
 
-      - name: Open the approval issue
+      - name: Post to X, or ask first
         if: hashFiles('promo/out/clip.mp4') != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node candidate.mjs out
+          PROMO_AUTOPOST: ${{ vars.PROMO_AUTOPOST }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: node deliver.mjs out
 
       - name: Save clip history
         if: always()

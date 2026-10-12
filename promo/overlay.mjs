@@ -1,6 +1,6 @@
 // The branded frame laid over the live map while filming. Same palette as the
 // app (app/styles.css); sized for a 540×960 CSS-px viewport rendered at 2×.
-// Everything that matters sits in the top third, inside the Reels/Shorts/TikTok
+// Everything that matters sits in the top third, inside the X/Reels/Shorts/TikTok
 // safe zone: below the platform header, left of the button rail, and well above
 // the caption block that covers the bottom quarter of the screen.
 

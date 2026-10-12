@@ -1,30 +1,37 @@
-// Caption for a clip: Claude writes it in the house voice when ANTHROPIC_API_KEY
-// is set, a template writes it otherwise. Both use only facts measured from
-// the clip, plus any active National Weather Service alerts for the spot.
+// Post text for a clip on X: Claude writes it in the house voice when
+// ANTHROPIC_API_KEY is set, a template writes it otherwise. Both use only facts
+// measured from the clip, plus any active National Weather Service alerts.
+// Hard limits: 280 X characters, and no links or domain names (X charges
+// $0.20 for a post with a link, versus $0.015 without).
+
+import { xLength, LINKISH } from './x.mjs';
 
 const UA = 'Downstrike-promo/1.0 (+https://downstrike.app)';
 
 const HOW_IT_WORKS = [
-  'Every ring grows at the speed of sound, 343 meters per second. When a ring reaches you, that is when you hear the thunder.',
-  'Count the seconds from flash to boom and divide by 3. That is about how many kilometers away it struck.',
-  'Nobody films these bolts. Volunteers with backyard antennas hear each one, and the timing of the radio crackle finds it, like GPS in reverse.',
-  'Fresh strikes glow white, then cool to amber and ember-red over 30 minutes, so a storm paints its own trail.',
+  'Each ring grows at the speed of sound. When one reaches you, you hear the thunder.',
+  'Count the seconds from flash to boom and divide by 3. That is roughly how many km away it hit.',
+  'Volunteers with backyard antennas hear every bolt and time the crackle to find where it struck.',
+  'Fresh strikes glow white, then cool to ember-red over 30 minutes. Storms paint their own trails.',
   'Thunder rolls because sound from different parts of one long bolt reaches you at different times.',
 ];
 
-const VOICE = `You write Instagram Reel captions for Downstrike, a free live lightning map (iPhone app and website) made by a dad and his kid, Leo and Noah Zimmerman.
+const CREDIT = 'Data: Blitzortung volunteers.';
+const CTA = 'Free live map, link in bio.';
+
+const VOICE = `You write posts on X for Downstrike, a free live lightning map (iPhone app and website) made by a dad and his kid, Leo and Noah Zimmerman. Each post carries a short video of a real storm on the map.
 House voice: short, precise, curious, kid-friendly (a smart middle schooler can read it), real physics kept intact. Calm wonder, never hype.
 Rules:
-- 3 to 5 short lines, then one line of hashtags. Under 700 characters in total.
-- Line 1 is the hook and must stand on its own, because it is all most people see. Name the place.
-- Use only the numbers and facts provided. Never invent statistics, damage, injuries, or forecasts.
-- Include exactly one "how it works" idea, from the options provided or close to them.
-- Credit the data with this exact line: "Lightning data: Blitzortung.org volunteers."
-- End the body with this exact line: "Watch any storm live, free: link in bio."
-- No em dashes. No emoji except at most one ⚡. No ALL CAPS words. No clickbait words like insane or crazy.
-- If safety is "high", open with one calm line telling people near the place to follow official National Weather Service warnings, and drop the playful tone.
-- Use the suggested hashtags; you may swap at most two for better ones.
-- Output only the caption text, nothing else.`;
+- At most 250 characters in total, hashtags included.
+- First line is the hook: name the place and the strike count.
+- Use only the numbers and facts provided. Never invent statistics, damage, injuries or forecasts.
+- One "how it works" idea, from the options provided or close to them.
+- Include these two lines exactly: "${CREDIT}" and "${CTA}"
+- No links, no web addresses, no domain names of any kind (no ".org", ".com", ".app").
+- No em dashes. At most one ⚡ and no other emoji. No ALL CAPS. No clickbait words like insane or crazy.
+- If safety is "high", the first line tells people near the place to follow official National Weather Service warnings, and the tone is calm and serious.
+- End with the suggested hashtags (at most 3).
+- Output only the post text.`;
 
 const CONUS = (lat, lon) => lat > 18 && lat < 50 && lon > -125 && lon < -64;
 
@@ -57,14 +64,15 @@ export function safetyLevel(alerts) {
 
 const plain = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '');
 
-export function hashtags(meta, cfg) {
-  const tags = [...cfg.hashtags];
+export function hashtags(meta) {
+  const tags = ['lightning'];
   const city = meta.place.city;
-  if (city) tags.push(`${plain(city.name)}Weather`);
   if (city && city.cc === 'US' && /^[A-Z]{2}$/.test(city.region) && city.region !== 'DC') {
     tags.push(`${city.region.toLowerCase()}wx`); // the weather community's state tags: #txwx, #flwx
   }
-  return [...new Set(tags)].slice(0, 8).map((t) => '#' + t).join(' ');
+  if (city) tags.push(`${plain(city.name)}Weather`);
+  else tags.push('thunderstorm');
+  return [...new Set(tags)].slice(0, 3).map((t) => '#' + t).join(' ');
 }
 
 function nuggetsFor(date) {
@@ -72,32 +80,41 @@ function nuggetsFor(date) {
   return [HOW_IT_WORKS[k % HOW_IT_WORKS.length], HOW_IT_WORKS[(k + 2) % HOW_IT_WORKS.length]];
 }
 
-export function templateCaption(meta, cfg) {
-  const [nugget] = nuggetsFor(new Date(meta.filmedAt));
-  const lines = [];
-  if (meta.safety === 'high' && meta.place.city) {
-    lines.push(`If you are near ${meta.place.city.name}, follow your National Weather Service warnings.`);
-  }
+export function templateCaption(meta) {
   const n = meta.stats.strikes10.toLocaleString('en-US');
-  lines.push(`⚡ ${meta.place.title}: ${n} strikes in 10 minutes, ${meta.when}.`);
-  lines.push(nugget);
-  lines.push('Lightning data: Blitzortung.org volunteers.');
-  lines.push('Watch any storm live, free: link in bio.');
-  return lines.join('\n') + '\n\n' + hashtags(meta, cfg);
+  const head = [];
+  if (meta.safety === 'high' && meta.place.city) {
+    head.push(`If you are near ${meta.place.city.name}, follow your National Weather Service warnings.`);
+  }
+  head.push(`⚡ ${meta.place.title}: ${n} strikes in 10 minutes.`);
+  const tags = hashtags(meta);
+  for (const nugget of [...nuggetsFor(new Date(meta.filmedAt)), null]) {
+    const body = [...head, nugget, `${CREDIT} ${CTA}`].filter(Boolean).join('\n\n');
+    const text = `${body}\n\n${tags}`;
+    if (xLength(text) <= 280) return text;
+  }
+  return `${head.join('\n')}\n${CREDIT} ${CTA}`.slice(0, 270);
 }
 
-// Tidy whatever the model returns so house rules hold even if it slips.
-export function cleanCaption(text, meta, cfg) {
+// Tidy whatever the model returns, then hold it to the hard limits.
+export function cleanCaption(text, meta) {
   let t = String(text || '').trim()
     .replace(/\s*—\s*/g, ', ')
     .replace(/^["']|["']$/g, '');
-  if (!/Blitzortung/i.test(t)) t = t.replace(/\n\n(#)/, '\nLightning data: Blitzortung.org volunteers.\n\n$1');
-  if (!/#\w/.test(t)) t += '\n\n' + hashtags(meta, cfg);
+  if (!/Blitzortung/i.test(t)) t = t.replace(/\n\n(#)/, `\n${CREDIT}\n\n$1`);
+  if (!/#\w/.test(t)) t += '\n\n' + hashtags(meta);
   return t;
 }
 
+export function captionProblem(text) {
+  if (xLength(text) > 280) return `too long for X (${xLength(text)} of 280)`;
+  if (LINKISH.test(text)) return 'contains a link or domain name';
+  if (xLength(text) < 40) return 'too short';
+  return null;
+}
+
 export async function writeCaption(meta, cfg, { apiKey = process.env.ANTHROPIC_API_KEY, log = () => {} } = {}) {
-  if (!apiKey) return { caption: templateCaption(meta, cfg), source: 'template' };
+  if (!apiKey) return { caption: templateCaption(meta), source: 'template' };
   const facts = {
     place_title: meta.place.title,
     place_detail: meta.place.sub,
@@ -107,7 +124,7 @@ export async function writeCaption(meta, cfg, { apiKey = process.env.ANTHROPIC_A
     active_nws_alerts: meta.alerts.map((a) => a.event),
     safety: meta.safety,
     how_it_works_options: nuggetsFor(new Date(meta.filmedAt)),
-    suggested_hashtags: hashtags(meta, cfg),
+    suggested_hashtags: hashtags(meta),
   };
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -115,7 +132,7 @@ export async function writeCaption(meta, cfg, { apiKey = process.env.ANTHROPIC_A
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model: cfg.captionModel,
-        max_tokens: 500,
+        max_tokens: 400,
         system: VOICE,
         messages: [{ role: 'user', content: JSON.stringify(facts, null, 2) }],
       }),
@@ -124,11 +141,12 @@ export async function writeCaption(meta, cfg, { apiKey = process.env.ANTHROPIC_A
     const j = await res.json();
     if (!res.ok) throw new Error((j.error && j.error.message) || `HTTP ${res.status}`);
     const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
-    const caption = cleanCaption(text, meta, cfg);
-    if (caption.length < 40 || caption.length > 2000) throw new Error(`odd caption length ${caption.length}`);
+    const caption = cleanCaption(text, meta);
+    const problem = captionProblem(caption);
+    if (problem) throw new Error(problem);
     return { caption, source: 'claude' };
   } catch (e) {
-    log(`caption: Claude failed (${e.message}); using the template`);
-    return { caption: templateCaption(meta, cfg), source: 'template' };
+    log(`caption: Claude's draft was unusable (${e.message}); using the template`);
+    return { caption: templateCaption(meta), source: 'template' };
   }
 }

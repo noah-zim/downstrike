@@ -17,7 +17,7 @@ export function issueTitle(meta) {
   return `⚡ Post? ${md(meta.place.title)} · ${meta.stats.strikes10.toLocaleString('en-US')} strikes · ${md(meta.when)}`;
 }
 
-export function buildIssueBody({ meta, caption, videoUrl, coverUrl, releaseUrl, owner }) {
+export function buildIssueBody({ meta, caption, videoUrl, coverUrl, releaseUrl, owner, note = '' }) {
   const warn = meta.safety === 'high'
     ? `> [!WARNING]\n> Active NWS alerts here: **${md(meta.alerts.map((a) => a.event).join(', '))}**. People may be in danger. Post with a safety-first caption, or \`/skip\`.\n\n`
     : meta.safety === 'elevated'
@@ -26,13 +26,14 @@ export function buildIssueBody({ meta, caption, videoUrl, coverUrl, releaseUrl, 
   if (!TAG_RE.test(meta.tag)) throw new Error(`bad clip tag ${meta.tag}`);
   const machine = { tag: meta.tag, filmedAt: meta.filmedAt, thumbOffsetMs: meta.thumbOffsetMs };
   return [
-    `@${owner} a new clip is ready. ${md(meta.place.sub)}, filmed ${md(meta.when)}${meta.captionSource === 'claude' ? ', caption by Claude' : ''}.`,
+    `@${owner} a new clip is ready. ${md(meta.place.sub)}, filmed ${md(meta.when)}${meta.captionSource === 'claude' ? ', text by Claude' : ''}.`,
     '',
+    ...(note ? [`**Why it's waiting for you:** ${md(note).replace(/\n/g, ' ')}`, ''] : []),
     warn + `[![cover](${coverUrl})](${videoUrl})`,
     '',
     `▶️ **[Watch the clip](${videoUrl})** (${meta.seconds} s, sound on) · [release](${releaseUrl}) · [open this storm in Downstrike](${meta.shareUrl})`,
     '',
-    '**Caption** (edit it right here, or comment `/caption your new text`):',
+    '**Post text** (edit it right here, or comment `/caption your new text`; 280 characters, no links):',
     '',
     CAP_START,
     '```text',
@@ -41,9 +42,9 @@ export function buildIssueBody({ meta, caption, videoUrl, coverUrl, releaseUrl, 
     CAP_END,
     '',
     '**Reply with**',
-    '- `/post` to publish it to Instagram now',
+    '- `/post` to post it on X now',
     '- `/skip` to throw it away',
-    '- `/caption …` to replace the caption',
+    '- `/caption …` to replace the post text',
     '',
     `Clips go stale: \`/post\` refuses after a few hours unless you write \`/post anyway\`.`,
     '',

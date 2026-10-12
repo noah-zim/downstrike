@@ -20,5 +20,5 @@ export function selectClaps(events, { maxClaps = 24, maxFar = 6 } = {}) {
 }
 
 // Final mix chain for ffmpeg: gentle compression lifts the rolling tails, a
-// limiter catches close cracks. Lands near -15 LUFS, a typical Reels level.
+// limiter catches close cracks. Lands near -15 LUFS, a typical level for social video.
 export const AUDIO_FILTER = 'acompressor=threshold=0.1:ratio=3:attack=4:release=350:makeup=2,alimiter=limit=0.9:level=false';

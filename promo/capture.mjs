@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Films a live storm on the real Downstrike map and writes a ready-to-post Reel.
+// Films a live storm on the real Downstrike map and writes a ready-to-post vertical video.
 //
 //   node capture.mjs --out out                 watch the live feed, pick the best storm
 //   node capture.mjs --out out --at 29.8,-95.4  film a spot you choose
@@ -387,7 +387,7 @@ async function main() {
 
     const mux = runFfmpeg(['-i', videoPath, '-i', audioPath, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
       '-af', AUDIO_FILTER, '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-shortest',
-      '-movflags', '+faststart', '-use_editlist', '0', // Meta's Reels spec: moov first, no edit lists
+      '-movflags', '+faststart', '-use_editlist', '0', // moov first, no edit lists: the safest MP4 for X and every other platform
       path.join(out, 'clip.mp4')]);
     await mux.done;
     fs.writeFileSync(path.join(out, 'cover.jpg'), cover.buf || (await page.screenshot({ type: 'jpeg', quality: 92 })));

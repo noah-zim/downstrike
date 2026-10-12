@@ -83,5 +83,3 @@ npm test
 - `fake-feed.mjs` stands in for the Blitzortung socket on offline runs.
 
 The app side is small. `?broadcast` hides the UI and replays strikes on a fixed delay so a frozen clock can film them. `?at=lat,lon,zoom` opens the map on any spot and works as a share link.
-
-`.github/workflows/storm-clip.yml` is a separate, on-demand recorder that feeds a different X posting script. The two don't share anything.

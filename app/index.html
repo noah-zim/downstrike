@@ -78,14 +78,11 @@
   <button id="btn-radar" class="icon-btn" title="Rain radar">
     <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3.2" opacity="0.6"/><path d="M10 10l4.6-4.6"/></svg>
   </button>
-  <button id="btn-wind" class="icon-btn" title="Wind flow">
-    <svg viewBox="0 0 20 20"><path d="M3 7.5h8.5a2.2 2.2 0 1 0-2.2-3.4"/><path d="M3 12h11.5a2.2 2.2 0 1 1-2.2 3.4"/></svg>
+  <button id="btn-share" class="icon-btn" title="Share this storm" aria-label="Share this storm">
+    <svg viewBox="0 0 20 20"><path d="M10 12V2.8"/><path d="M6.7 6L10 2.7 13.3 6"/><path d="M7 8.6H5.6a1.1 1.1 0 0 0-1.1 1.1v6.6a1.1 1.1 0 0 0 1.1 1.1h8.8a1.1 1.1 0 0 0 1.1-1.1V9.7a1.1 1.1 0 0 0-1.1-1.1H13"/></svg>
   </button>
   <button id="btn-storm" class="icon-btn storm-btn" title="Fly to the most active storm on Earth right now">
     <svg viewBox="0 0 20 20" class="storm-bolt"><path d="M11.2 2L4.6 11h4.2l-1.4 7L14.4 8.6h-4.1L11.2 2z"/></svg>
-  </button>
-  <button id="btn-share" class="icon-btn" title="Share this storm" aria-label="Share this storm">
-    <svg viewBox="0 0 20 20"><path d="M10 12V2.8"/><path d="M6.7 6L10 2.7 13.3 6"/><path d="M7 8.6H5.6a1.1 1.1 0 0 0-1.1 1.1v6.6a1.1 1.1 0 0 0 1.1 1.1h8.8a1.1 1.1 0 0 0 1.1-1.1V9.7a1.1 1.1 0 0 0-1.1-1.1H13"/></svg>
   </button>
   <button id="btn-home" class="icon-btn" title="Return home · change address">
     <svg viewBox="0 0 20 20"><path d="M4 10.2l6-5.7 6 5.7V16h-4.2v-3.6H8.2V16H4v-5.8z"/></svg>
@@ -117,6 +114,10 @@
   <div class="sheet-row-toggle">
     <span>Thunder sound</span>
     <button class="switch" id="sw-sound" aria-label="Thunder sound"><span class="switch-knob"></span></button>
+  </div>
+  <div class="sheet-row-toggle">
+    <span>Wind flow</span>
+    <button class="switch" id="sw-wind" aria-label="Wind flow"><span class="switch-knob"></span></button>
   </div>
   <button id="sheet-home" class="sheet-row">Change home location</button>
   <a class="sheet-row" href="info.html">How Downstrike works</a>

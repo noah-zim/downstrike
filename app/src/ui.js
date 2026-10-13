@@ -135,7 +135,7 @@ export function showBanner(text) {
 export function wireControls(settings, handlers) {
   const sync = () => {
     $('btn-radar').classList.toggle('on', settings.radar);
-    $('btn-wind').classList.toggle('on', settings.wind);
+    $('sw-wind').classList.toggle('on', settings.wind);
     $('sw-sound').classList.toggle('on', settings.sound);
     $('alert-km').value = settings.alertKm;
     $('alert-km-label').textContent = `${settings.alertKm} km`;
@@ -145,7 +145,7 @@ export function wireControls(settings, handlers) {
     settings.radar = !settings.radar; saveSettings(settings); sync();
     handlers.onRadar(settings.radar);
   };
-  $('btn-wind').onclick = () => {
+  $('sw-wind').onclick = () => {
     settings.wind = !settings.wind; saveSettings(settings); sync();
     handlers.onWind(settings.wind);
   };

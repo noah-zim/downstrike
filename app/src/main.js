@@ -103,6 +103,12 @@ async function boot() {
   // the app backgrounds or another app takes audio — re-arm on every tap and
   // on return to foreground so thunder recovers without a restart ----
   document.addEventListener('pointerdown', armAudio);
+
+  // The map page must never scroll. If iOS shifts it anyway (focus, the
+  // keyboard, returning from the share sheet), put it straight back.
+  window.addEventListener('scroll', () => {
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+  }, { passive: true });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) armAudio();
   });

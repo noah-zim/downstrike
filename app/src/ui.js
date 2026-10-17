@@ -4,6 +4,17 @@ import { getPosition } from './native.js';
 
 const $ = (id) => document.getElementById(id);
 
+// Track the on-screen keyboard as --kb so the setup card can sit above it.
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const syncKeyboard = () => {
+    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    document.documentElement.style.setProperty('--kb', `${kb}px`);
+  };
+  vv.addEventListener('resize', syncKeyboard);
+  vv.addEventListener('scroll', syncKeyboard);
+}
+
 // storage keys ("fulmen" fallbacks migrate saves from before the app was renamed)
 function stored(key) {
   return localStorage.getItem('downstrike.' + key) || localStorage.getItem('fulmen.' + key);

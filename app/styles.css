@@ -19,6 +19,16 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
 }
+/* The app never scrolls. overflow:hidden only stops the user — iOS still
+   scrolls the page itself for focus and the keyboard, and the closed sheets
+   parked below the screen gave it room to, shoving the whole UI up. A fixed,
+   clipped body has no scroll room at all. */
+body.map-page {
+  position: fixed;
+  inset: 0;
+  overflow: clip;
+  overscroll-behavior: none;
+}
 
 #map { position: absolute; inset: 0; }
 
@@ -284,11 +294,15 @@ html, body {
   max-width: 560px;
   margin: 0 auto;
   transform: translateY(105%);
-  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  /* hidden once it has slid away, so a closed sheet can never show or take focus */
+  visibility: hidden;
+  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 0.38s;
   will-change: transform;
 }
 #sheet.open, #share-sheet.open {
   transform: none;
+  visibility: visible;
+  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
 }
 
 /* ---- share sheet ---- */
@@ -467,10 +481,16 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* --kb is the on-screen keyboard's height (set in ui.js): the page no
+     longer scrolls to dodge the keyboard, so the card re-centers above it */
+  padding-bottom: var(--kb, 0px);
+  transition: padding-bottom 0.25s ease;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
 .modal-card {
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
   width: min(440px, 92vw);
   background: #10131a;
   border: 1px solid var(--panel-border);

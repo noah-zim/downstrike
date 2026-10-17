@@ -292,13 +292,25 @@ html, body {
 }
 
 /* ---- share sheet ---- */
-.share-head { display: flex; justify-content: space-between; align-items: flex-start; }
+/* Never taller than the screen: the preview gives up height first, and a
+   strip of scrim always stays visible above the sheet to tap. */
+#share-sheet {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100% - 28px - env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+}
+#share-sheet > :not(.share-preview) { flex-shrink: 0; }
+#share-sheet .sheet-handle, .share-head { touch-action: none; cursor: grab; }
+.share-head { display: flex; justify-content: space-between; align-items: center; }
 .share-x {
-  background: none; border: none; color: var(--muted); font-size: 15px;
-  padding: 0 2px 8px 12px; margin-top: -4px; cursor: pointer; font-family: inherit;
+  background: none; border: none; color: var(--muted); font-size: 17px;
+  width: 44px; height: 44px; margin: -12px -12px -8px 0;
+  cursor: pointer; font-family: inherit;
 }
 .share-preview {
   height: min(46vh, 430px);
+  min-height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;

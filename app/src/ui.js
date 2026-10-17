@@ -187,15 +187,17 @@ export function openSetup(onPick) {
   const modal = $('setup');
   modal.classList.remove('hidden');
 
-  // cancellable whenever a home already exists (first run stays blocking)
+  // Always escapable: the map works without a home (strikes, STORM, share),
+  // and the home button brings this back. A school computer that blocks
+  // location must never be stuck behind it.
   const cancel = $('setup-cancel');
-  const canCancel = !!loadHome();
-  cancel.classList.toggle('hidden', !canCancel);
+  cancel.textContent = loadHome() ? 'Cancel' : 'Just explore the map';
+  cancel.classList.remove('hidden');
   const close = () => {
     modal.classList.add('hidden');
     document.removeEventListener('keydown', onKey);
   };
-  const onKey = (e) => { if (e.key === 'Escape' && canCancel) close(); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
   cancel.onclick = close;
   document.addEventListener('keydown', onKey);
   const input = $('addr');
@@ -227,7 +229,7 @@ export function openSetup(onPick) {
             label: r.display_name.split(',').slice(0, 2).join(','),
           };
           saveHome(home);
-          modal.classList.add('hidden');
+          close();
           onPick(home);
         };
         results.appendChild(li);
@@ -256,7 +258,7 @@ export function openSetup(onPick) {
       } catch (e) {}
       const home = { lat: pos.lat, lon: pos.lon, label };
       saveHome(home);
-      modal.classList.add('hidden');
+      close();
       onPick(home);
     } catch (e) {
       hint.textContent = "Couldn't get your location — check permissions, or search instead.";

@@ -60,7 +60,7 @@ async function placeName(lat, lon) {
   let name = null;
   try {
     const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=5' +
-      `&email=noah.iterates%40gmail.com&lat=${lat.toFixed(2)}&lon=${lon.toFixed(2)}`,
+      `&email=nzimmerman%40gmail.com&lat=${lat.toFixed(2)}&lon=${lon.toFixed(2)}`,
       { headers: { 'Accept-Language': 'en' }, signal: AbortSignal.timeout(3000) });
     const a = (await res.json()).address || {};
     const region = a.state || a.region || a.province || a.archipelago;
@@ -101,8 +101,14 @@ function drawScene(ctx, f, map, overlay) {
 }
 
 function onNextRender(map, fn) {
-  return new Promise((resolve) => {
-    map.once('render', () => resolve(fn()));
+  return new Promise((resolve, reject) => {
+    // a backgrounded tab may never render; don't leave the caller hanging
+    const timer = setTimeout(() => { map.off('render', run); reject(new Error('map did not render')); }, 4000);
+    function run() {
+      clearTimeout(timer);
+      try { resolve(fn()); } catch (e) { reject(e); }
+    }
+    map.once('render', run);
     map.triggerRepaint();
   });
 }
@@ -218,6 +224,8 @@ export function createShare({ map, overlay, store, settings, toast }) {
   let meta = null;     // { title, place } for the open share
   let objectUrl = null;
   let recording = null;
+  let clipStarting = false; // set synchronously so a double tap can't start two recorders
+  let openSeq = 0;          // bumps on every open/close so a stale render can't refill the sheet
 
   const caption = () => meta.place
     ? `Lightning over ${meta.place}, live on Downstrike ⚡`
@@ -236,6 +244,7 @@ export function createShare({ map, overlay, store, settings, toast }) {
     scrim.classList.toggle('open', open);
   };
   const close = () => {
+    openSeq++;
     show(false);
     current = null;
     // let the slide-out finish before dropping the preview
@@ -260,7 +269,8 @@ export function createShare({ map, overlay, store, settings, toast }) {
   };
 
   async function openImage() {
-    if (recording) return;
+    if (recording || clipStarting) return;
+    const seq = ++openSeq;
     countEvent('share-open');
     current = null;
     go.disabled = true;
@@ -273,15 +283,25 @@ export function createShare({ map, overlay, store, settings, toast }) {
     show(true);
 
     // freeze the moment of the tap, then add the frame once the place is known
-    const f = frameFor(Math.min(16 / 9, Math.max(9 / 16, $('map').clientWidth / $('map').clientHeight)));
-    const scene = document.createElement('canvas');
-    scene.width = f.outW; scene.height = f.outH;
-    await onNextRender(map, () => drawScene(scene.getContext('2d'), f, map, overlay));
-    const d = await describe(f);
-    meta = { place: d.place };
-    scene.getContext('2d').drawImage(d.brand, 0, 0);
-    const blob = await new Promise((r) => scene.toBlob(r, 'image/jpeg', 0.92));
-    if (!blob || !sheet.classList.contains('open')) return;
+    let blob = null;
+    try {
+      const f = frameFor(Math.min(16 / 9, Math.max(9 / 16, $('map').clientWidth / $('map').clientHeight)));
+      const scene = document.createElement('canvas');
+      scene.width = f.outW; scene.height = f.outH;
+      await onNextRender(map, () => drawScene(scene.getContext('2d'), f, map, overlay));
+      const d = await describe(f);
+      meta = { place: d.place };
+      scene.getContext('2d').drawImage(d.brand, 0, 0);
+      blob = await new Promise((r) => scene.toBlob(r, 'image/jpeg', 0.92));
+    } catch (e) {
+      console.warn('share picture failed:', e);
+    }
+    if (seq !== openSeq || !sheet.classList.contains('open')) return; // closed or reopened meanwhile
+    if (!blob) {
+      wait.textContent = "Couldn't frame the storm. You can still copy a link.";
+      wait.classList.remove('share-wait');
+      return;
+    }
     const img = new Image();
     img.alt = 'The picture that will be shared';
     img.src = setObjectUrl(blob);
@@ -294,17 +314,27 @@ export function createShare({ map, overlay, store, settings, toast }) {
   }
 
   async function startClip() {
-    if (!mime || recording) return;
+    if (!mime || recording || clipStarting) return;
+    clipStarting = true;
+    openSeq++; // retire any picture still being framed
     countEvent('share-clip-start');
     show(false);
-    const f = frameFor(9 / 16);
-    const d = await describe(f);
-    meta = { place: d.place };
-    const canvas = document.createElement('canvas');
-    canvas.width = f.outW; canvas.height = f.outH;
-    const ctx = canvas.getContext('2d');
-    const draw = () => { drawScene(ctx, f, map, overlay); ctx.drawImage(d.brand, 0, 0); };
-    await onNextRender(map, draw); // first frame in place before the recorder starts
+    let f, d, canvas, ctx, draw;
+    try {
+      f = frameFor(9 / 16);
+      d = await describe(f);
+      meta = { place: d.place };
+      canvas = document.createElement('canvas');
+      canvas.width = f.outW; canvas.height = f.outH;
+      ctx = canvas.getContext('2d');
+      draw = () => { drawScene(ctx, f, map, overlay); ctx.drawImage(d.brand, 0, 0); };
+      await onNextRender(map, draw); // first frame in place before the recorder starts
+    } catch (e) {
+      clipStarting = false;
+      console.warn('clip start failed:', e);
+      toast("Couldn't start the clip. Try a picture instead.");
+      return;
+    }
 
     const stream = canvas.captureStream(30);
     const withAudio = mime.includes('mp4a') || mime === 'video/mp4';
@@ -314,6 +344,7 @@ export function createShare({ map, overlay, store, settings, toast }) {
     try {
       rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8e6 });
     } catch (e) {
+      clipStarting = false;
       stopAudioTap();
       toast("This browser can't record clips. Try a picture instead.");
       return;
@@ -332,8 +363,10 @@ export function createShare({ map, overlay, store, settings, toast }) {
       raf = requestAnimationFrame(tick);
     };
     const onHidden = () => { if (document.hidden) stop(); };
+    let stopped = false;
     const stop = () => {
-      if (!recording) return;
+      if (stopped) return; // per-recording flag: never trust the shared `recording` slot
+      stopped = true;
       recording = null;
       cancelAnimationFrame(raf);
       map.off('render', draw);
@@ -344,6 +377,7 @@ export function createShare({ map, overlay, store, settings, toast }) {
     };
     const done = new Promise((r) => { rec.onstop = r; });
     recording = { stop };
+    clipStarting = false;
     document.addEventListener('visibilitychange', onHidden);
     pill.classList.remove('hidden');
     rec.start(1000);
@@ -419,6 +453,40 @@ export function createShare({ map, overlay, store, settings, toast }) {
   $('share-copy').onclick = copyLink;
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && sheet.classList.contains('open')) close();
+  });
+
+  // drag the handle or title row down to dismiss, like an iOS sheet
+  let drag = null;
+  const grab = [sheet.querySelector('.sheet-handle'), sheet.querySelector('.share-head')];
+  for (const el of grab.filter(Boolean)) {
+    el.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return; // let the ✕ be a tap
+      drag = { y0: e.clientY, t0: performance.now(), dy: 0, id: e.pointerId };
+      sheet.style.transition = 'none';
+      try { el.setPointerCapture(e.pointerId); } catch (err) {} // drag still works uncaptured
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag.dy = Math.max(0, e.clientY - drag.y0);
+      sheet.style.transform = `translateY(${drag.dy}px)`;
+    });
+    const release = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const { dy, t0 } = drag;
+      drag = null;
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+      const fast = dy / Math.max(1, performance.now() - t0) > 0.5; // px per ms
+      if (dy > 80 || (fast && dy > 20)) close();
+    };
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+  }
+
+  // Safari/Chrome can restore this page from the back-forward cache with the
+  // sheet still up and a stale picture in it; start fresh instead.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && sheet.classList.contains('open') && !recording) close();
   });
 
   return { open: () => { clipBtn.textContent = `Record a ${CLIP_SECONDS} s clip`; openImage(); } };
